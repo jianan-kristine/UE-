@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Tool Approval Test</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #1a1a2e; color: #eee; }
+    .test-section { background: #16213e; padding: 20px; margin: 10px 0; border-radius: 8px; }
+    button { padding: 10px 20px; margin: 5px; cursor: pointer; background: #0f3460; color: white; border: none; border-radius: 4px; }
+    button:hover { background: #533483; }
+    .log { background: #0a0a0a; padding: 10px; margin: 10px 0; border-radius: 4px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto; }
+    .success { color: #0f0; }
+    .error { color: #f00; }
+    .info { color: #0af; }
+  </style>
+</head>
+<body>
+  <h1>🔔 Tool Approval System Test</h1>
+  
+  <div class="test-section">
+    <h2>Step 1: Start Analysis with Approval Enabled</h2>
+    <input type="text" id="testIdea" placeholder="Enter test idea" style="width: 400px; padding: 8px;" value="AI productivity tool">
+    <br><br>
+    <label>
+      <input type="checkbox" id="requireApproval" checked> Require Tool Approval
+    </label>
+    <br><br>
+    <button onclick="startTest()">Start Analysis</button>
+    <button onclick="clearLog()">Clear Log</button>
+  </div>
+
+  <div class="test-section">
+    <h2>Console Log</h2>
+    <div class="log" id="log"></div>
+  </div>
+
+  <script>
+    const log = (msg, type = 'info') => {
+      const div = document.getElementById('log');
+      const span = document.createElement('div');
+      span.className = type;
+      span.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      div.appendChild(span);
+      div.scrollTop = div.scrollHeight;
+      console.log(msg);
+    };
+
+    const clearLog = () => {
+      document.getElementById('log').innerHTML = '';
+    };
+
+    async function startTest() {
+      const idea = document.getElementById('testIdea').value;
+      const requireApproval = document.getElementById('requireApproval').checked;
+
+      if (!idea) {
+        log('❌ Please enter a test idea', 'error');
+        return;
+      }
+
+      log('🚀 Starting analysis test...', 'info');
+      log(`   - Idea: ${idea}`, 'info');
+      log(`   - Require Approval: ${requireApproval}`, 'info');
+
+      const body = {
+        idea,
+        mode: 'quick',
+        language: 'en',
+        persona: 'pm',
+        model: 'deepseek-fast',
+        allowWebTools: true,
+        enableAutoContinue: false,
+        requireToolApproval: requireApproval,
+        sessionId: Date.now().toString()
+      };
+
+      log('📤 Sending POST /api/analyze', 'info');
+      log(`   Body: ${JSON.stringify(body, null, 2)}`, 'info');
+
+      try {
+        const response = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        log(`📥 Response status: ${response.status}`, response.ok ? 'success' : 'error');
+
+        const text = await response.text();
+        log(`📥 Raw response: ${text.substring(0, 500)}...`, 'info');
+
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          log(`❌ Failed to parse JSON: ${e.message}`, 'error');
+          return;
+        }
+
+        log('📊 Parsed response:', 'info');
+        log(`   ${JSON.stringify(data, null, 2)}`, 'info');
+
+        if (data.needsApproval) {
+          log('🔔 ============================================', 'success');
+          log('🔔 APPROVAL REQUIRED!', 'success');
+          log('🔔 ============================================', 'success');
+          log(`   ✅ needsApproval: ${data.needsApproval}`, 'success');
+          log(`   ✅ approvalId: ${data.approvalId}`, 'success');
+          log(`   ✅ toolName: ${data.toolName}`, 'success');
+          log(`   ✅ toolArgs: ${JSON.stringify(data.toolArgs)}`, 'success');
+          log(`   ✅ checkpointId: ${data.checkpointId}`, 'success');
+          
+          // Test approval
+          log('', 'info');
+          log('⏳ Waiting 2 seconds before testing approval...', 'info');
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          await testApproval(data.approvalId, true);
+        } else if (data.error) {
+          log(`❌ Error: ${data.error}`, 'error');
+        } else {
+          log(`✅ Analysis completed without approval request`, 'success');
+          log(`   Report length: ${data.report?.length || 0} chars`, 'info');
+        }
+      } catch (error) {
+        log(`❌ Fetch error: ${error.message}`, 'error');
+      }
+    }
+
+    async function testApproval(approvalId, approved) {
+      log('🔔 Testing approval endpoint...', 'info');
+      log(`   Approval ID: ${approvalId}`, 'info');
+      log(`   Decision: ${approved ? 'APPROVE ✅' : 'REJECT ❌'}`, 'info');
+
+      try {
+        const response = await fetch('/api/tool-approval', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            approvalId,
+            approved,
+            reason: approved ? 'Test approval' : 'Test rejection'
+          })
+        });
+
+        log(`📥 Approval response status: ${response.status}`, response.ok ? 'success' : 'error');
+
+        const data = await response.json();
+        log(`📥 Approval response: ${JSON.stringify(data, null, 2)}`, 'info');
+
+        if (data.success) {
+          log(`✅ Approval recorded successfully!`, 'success');
+        } else {
+          log(`❌ Approval failed: ${data.error || 'Unknown error'}`, 'error');
+        }
+      } catch (error) {
+        log(`❌ Approval request error: ${error.message}`, 'error');
+      }
+    }
+
+    // Auto-start on load
+    window.addEventListener('load', () => {
+      log('✅ Test page loaded', 'success');
+      log('📋 Make sure:', 'info');
+      log('   1. Server is running on http://localhost:8001', 'info');
+      log('   2. DEEPSEEK_API_KEY is set in .env', 'info');
+      log('   3. FIRECRAWL_API_KEY is set in .env (optional)', 'info');
+      log('', 'info');
+      log('💡 Click "Start Analysis" to test approval flow', 'info');
+    });
+  </script>
+</body>
+</html>

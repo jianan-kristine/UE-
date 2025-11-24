@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>报告中心 - CompLens</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #0a0e1a 0%, #1a1f35 100%);
+      color: #e5e7eb;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      position: relative;
+    }
+
+    h1 {
+      font-size: 36px;
+      font-weight: 300;
+      color: #f1f5f9;
+      margin: 0 0 10px 0;
+    }
+
+    .subtitle {
+      color: #9ca3af;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .back-button {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      padding: 10px 20px;
+      background: rgba(51, 65, 85, 0.3);
+      border: 1px solid #334155;
+      color: #9ca3af;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .back-button:hover {
+      background: rgba(51, 65, 85, 0.6);
+      border-color: #475569;
+      color: #e5e7eb;
+      transform: translateY(-50%) translateX(-2px);
+    }    .filters {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #1f2937;
+    }
+
+    .filter-group {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .filter-group label {
+      display: block;
+      font-size: 12px;
+      color: #9ca3af;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .filter-group input,
+    .filter-group select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      background: #0a0e1a;
+      color: #e5e7eb;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+
+    .filter-group input:focus,
+    .filter-group select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .report-card {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      padding: 24px;
+      transition: all 0.3s;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .report-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .report-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      border-color: #334155;
+    }
+
+    .report-card:hover::before {
+      opacity: 1;
+    }
+
+    .report-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .report-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin: 0 0 8px 0;
+      line-height: 1.4;
+    }
+
+    .report-meta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .meta-tag {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      background: rgba(102, 126, 234, 0.1);
+      color: #a5b4fc;
+      border: 1px solid rgba(102, 126, 234, 0.2);
+    }
+
+    .meta-tag.mode {
+      background: rgba(251, 191, 36, 0.1);
+      color: #fbbf24;
+      border-color: rgba(251, 191, 36, 0.2);
+    }
+
+    .meta-tag.persona {
+      background: rgba(139, 92, 246, 0.1);
+      color: #a78bfa;
+      border-color: rgba(139, 92, 246, 0.2);
+    }
+
+    .report-date {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 12px;
+    }
+
+    .report-preview {
+      font-size: 13px;
+      color: #9ca3af;
+      line-height: 1.6;
+      margin-bottom: 16px;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .report-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+  .btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #334155;
+  }
+
+  .btn-primary {
+    background: rgba(102, 126, 234, 0.1);
+    color: #a5b4fc;
+    border-color: rgba(102, 126, 234, 0.3);
+  }
+
+  .btn-primary:hover {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: #667eea;
+    transform: translateY(-2px);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid #334155;
+    color: #9ca3af;
+  }
+
+  .btn-secondary:hover {
+    background: rgba(51, 65, 85, 0.5);
+    border-color: #475569;
+    color: #e5e7eb;
+  }    .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+      color: #6b7280;
+    }
+
+    .empty-state-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    .empty-state h2 {
+      font-size: 24px;
+      font-weight: 300;
+      color: #9ca3af;
+      margin: 0 0 12px 0;
+    }
+
+    .empty-state p {
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: #9ca3af;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      margin: 0 auto 20px;
+      border: 3px solid #1f2937;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .filters {
+        flex-direction: column;
+      }
+
+      .back-button {
+        position: static;
+        transform: none;
+        margin-bottom: 20px;
+      }
+    }
+
+    /* Reports Container Styles */
+    .reports-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .reports-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 40px;
+    }
+
+    .reports-header h1 {
+      font-size: 36px;
+      font-weight: 300;
+      color: #f1f5f9;
+      margin: 0;
+    }
+
+    /* Language Switcher */
+    .lang-switcher {
+      display: flex;
+      gap: 8px;
+      margin-right: 20px;
+    }
+
+    .lang-btn {
+      padding: 6px 12px;
+      background: rgba(51, 65, 85, 0.3);
+      border: 1px solid #334155;
+      color: #9ca3af;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.3s;
+    }
+
+    .lang-btn:hover {
+      background: rgba(51, 65, 85, 0.5);
+      color: #e5e7eb;
+    }
+
+    .lang-btn.active {
+      background: rgba(102, 126, 234, 0.2);
+      border-color: #667eea;
+      color: #a5b4fc;
+    }
+
+    .back-btn {
+      padding: 10px 20px;
+      background: rgba(51, 65, 85, 0.3);
+      border: 1px solid #334155;
+      color: #9ca3af;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 14px;
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .back-btn:hover {
+      background: rgba(51, 65, 85, 0.6);
+      border-color: #475569;
+      color: #e5e7eb;
+    }
+
+    /* Filter Bar */
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 8px 16px;
+      background: rgba(51, 65, 85, 0.3);
+      border: 1px solid #334155;
+      color: #9ca3af;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.3s;
+    }
+
+    .filter-btn:hover {
+      background: rgba(51, 65, 85, 0.5);
+      color: #e5e7eb;
+    }
+
+    .filter-btn.active {
+      background: rgba(102, 126, 234, 0.2);
+      border-color: #667eea;
+      color: #a5b4fc;
+    }
+
+    /* Reports Grid */
+    .reports-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 24px;
+    }
+
+    .report-card {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      padding: 24px;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .report-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .report-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      border-color: #334155;
+    }
+
+    .report-card:hover::before {
+      opacity: 1;
+    }
+
+    .report-card-header {
+      margin-bottom: 12px;
+    }
+
+    .report-badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .report-badge {
+      font-size: 10px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-quick {
+      background: rgba(251, 191, 36, 0.1);
+      color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.2);
+    }
+
+    .badge-deep {
+      background: rgba(139, 92, 246, 0.1);
+      color: #a78bfa;
+      border: 1px solid rgba(139, 92, 246, 0.2);
+    }
+
+    .badge-initial {
+      background: rgba(34, 197, 94, 0.1);
+      color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, 0.2);
+    }
+
+    .badge-followup {
+      background: rgba(59, 130, 246, 0.1);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    .report-meta {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 16px;
+    }
+
+    .report-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 1px solid #334155;
+    }
+
+    .btn-view {
+      background: rgba(102, 126, 234, 0.1);
+      color: #a5b4fc;
+      border-color: rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-view:hover {
+      background: rgba(102, 126, 234, 0.2);
+      border-color: #667eea;
+    }
+
+    .btn-visualize {
+      background: rgba(139, 92, 246, 0.1);
+      color: #a78bfa;
+      border-color: rgba(139, 92, 246, 0.3);
+    }
+
+    .btn-visualize:hover {
+      background: rgba(139, 92, 246, 0.2);
+      border-color: #8b5cf6;
+    }
+
+    .btn-export {
+      background: transparent;
+      color: #9ca3af;
+      border-color: #334155;
+    }
+
+    .btn-export:hover {
+      background: rgba(51, 65, 85, 0.5);
+      color: #e5e7eb;
+    }
+
+    .empty-state-title {
+      font-size: 24px;
+      font-weight: 300;
+      color: #9ca3af;
+      margin-bottom: 12px;
+    }
+
+    .empty-state-text {
+      font-size: 14px;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <div class="reports-container">
+    <div class="reports-header">
+      <h1>📊 报告中心</h1>
+      <div style="display: flex; align-items: center;">
+        <div class="lang-switcher">
+          <button class="lang-btn active" data-lang="zh" onclick="switchLanguage('zh')">中文</button>
+          <button class="lang-btn" data-lang="en" onclick="switchLanguage('en')">English</button>
+          <button class="lang-btn" data-lang="ja" onclick="switchLanguage('ja')">日本語</button>
+        </div>
+        <a href="/" class="back-btn">← 返回主页</a>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <button class="filter-btn active" onclick="applyFilter('all')">全部</button>
+      <button class="filter-btn" onclick="applyFilter('quick')">快速反馈</button>
+      <button class="filter-btn" onclick="applyFilter('deep')">深度查找</button>
+      <button class="filter-btn" onclick="applyFilter('initial')">初始查询</button>
+      <button class="filter-btn" onclick="applyFilter('followup')">追问</button>
+    </div>
+
+    <div id="reportsGrid" class="reports-grid">
+      <!-- Reports will be loaded here -->
+    </div>
+  </div>
+
+  <script>
+    let allReports = [];
+    let currentFilter = 'all';
+    let currentLang = localStorage.getItem('preferredLanguage') || 'zh';
+
+    // 多语言翻译
+    const translations = {
+      zh: {
+        title: '报告中心',
+        backBtn: '← 返回主页',
+        filterAll: '全部',
+        filterQuick: '快速反馈',
+        filterDeep: '深度查找',
+        filterInitial: '初始查询',
+        filterFollowup: '追问',
+        loading: '正在加载报告...',
+        emptyIcon: '📭',
+        emptyTitle: '暂无完成的报告',
+        emptyText: '完成分析后，报告会显示在这里',
+        btnView: '📄 查看',
+        btnVisualize: '📊 可视化',
+        btnExport: '💾 导出',
+        badgeQuick: 'QUICK',
+        badgeDeep: 'DEEP',
+        badgeInitial: 'INITIAL',
+        badgeFollowup: 'FOLLOW-UP',
+        errorLoad: '加载报告失败',
+        errorNotFound: '报告未找到',
+        errorVisualize: '报告中未找到可视化数据',
+        errorParse: '可视化数据解析失败',
+        exportSuccess: '已导出报告',
+      },
+      en: {
+        title: 'Reports Center',
+        backBtn: '← Back to Home',
+        filterAll: 'All',
+        filterQuick: 'Quick',
+        filterDeep: 'Deep',
+        filterInitial: 'Initial',
+        filterFollowup: 'Follow-up',
+        loading: 'Loading reports...',
+        emptyIcon: '📭',
+        emptyTitle: 'No completed reports',
+        emptyText: 'Reports will appear here after analysis',
+        btnView: '📄 View',
+        btnVisualize: '📊 Visualize',
+        btnExport: '💾 Export',
+        badgeQuick: 'QUICK',
+        badgeDeep: 'DEEP',
+        badgeInitial: 'INITIAL',
+        badgeFollowup: 'FOLLOW-UP',
+        errorLoad: 'Failed to load reports',
+        errorNotFound: 'Report not found',
+        errorVisualize: 'No visualization data found in report',
+        errorParse: 'Failed to parse visualization data',
+        exportSuccess: 'Report exported',
+      },
+      ja: {
+        title: 'レポートセンター',
+        backBtn: '← ホームに戻る',
+        filterAll: 'すべて',
+        filterQuick: 'クイック',
+        filterDeep: 'ディープ',
+        filterInitial: '初期',
+        filterFollowup: '追加質問',
+        loading: 'レポートを読み込み中...',
+        emptyIcon: '📭',
+        emptyTitle: '完了したレポートがありません',
+        emptyText: '分析完了後、ここにレポートが表示されます',
+        btnView: '📄 表示',
+        btnVisualize: '📊 可視化',
+        btnExport: '💾 エクスポート',
+        badgeQuick: 'QUICK',
+        badgeDeep: 'DEEP',
+        badgeInitial: 'INITIAL',
+        badgeFollowup: 'FOLLOW-UP',
+        errorLoad: 'レポートの読み込みに失敗しました',
+        errorNotFound: 'レポートが見つかりません',
+        errorVisualize: 'レポートに可視化データが見つかりません',
+        errorParse: '可視化データの解析に失敗しました',
+        exportSuccess: 'レポートをエクスポートしました',
+      }
+    };
+
+    // 切换语言
+    function switchLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem('preferredLanguage', lang);
+      
+      // 更新语言按钮状态
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        if (btn.dataset.lang === lang) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      
+      // 更新页面文本
+      updatePageText();
+      
+      // 重新渲染报告
+      applyFilters();
+    }
+
+    // 更新页面文本
+    function updatePageText() {
+      const t = translations[currentLang];
+      document.title = `${t.title} - CompLens`;
+      document.querySelector('h1').textContent = `📊 ${t.title}`;
+      document.querySelector('.back-btn').textContent = t.backBtn;
+      
+      // 更新过滤按钮
+      const filters = document.querySelectorAll('.filter-btn');
+      filters[0].textContent = t.filterAll;
+      filters[1].textContent = t.filterQuick;
+      filters[2].textContent = t.filterDeep;
+      filters[3].textContent = t.filterInitial;
+      filters[4].textContent = t.filterFollowup;
+    }
+
+    async function loadReports() {
+      const t = translations[currentLang];
+      
+      try {
+        // Load from localStorage (searchHistory)
+        const historyData = localStorage.getItem('searchHistory');
+        if (!historyData) {
+          renderEmptyState();
+          return;
+        }
+
+        const history = JSON.parse(historyData);
+        
+        // 只展示已经完成的记录，并且统一整理时间字段
+        allReports = history
+          .filter(item => !item.interrupted)
+          .map(item => {
+            // 尝试从多种字段里找出"完成时间"
+            const rawDate =
+              item.createdAt ||
+              item.completedAt ||
+              item.finishedAt ||
+              item.timestamp ||
+              item.time ||
+              item.date;
+
+            return {
+              ...item,
+              // 统一挂在 createdAt 上，后面统一读取这个
+              createdAt: rawDate || null,
+            };
+          });
+
+        console.log(
+          `📊 Loaded ${allReports.length} completed reports (filtered out ${
+            history.length - allReports.length
+          } interrupted)`
+        );
+        
+        applyFilters();
+      } catch (error) {
+        console.error(t.errorLoad, error);
+        document.getElementById('reportsGrid').innerHTML = 
+          `<div class="empty-state"><div class="empty-state-title">${t.errorLoad}</div></div>`;
+      }
+    }
+
+    function applyFilter(filter) {
+      currentFilter = filter;
+      
+      // Update active button
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+      
+      applyFilters();
+    }
+
+    function applyFilters() {
+      let filtered = [...allReports];
+      
+      // Apply filter
+      if (currentFilter !== 'all') {
+        if (currentFilter === 'quick' || currentFilter === 'deep') {
+          filtered = filtered.filter(r => r.mode === currentFilter);
+        } else if (currentFilter === 'initial') {
+          filtered = filtered.filter(r => r.queryType === 'initial');
+        } else if (currentFilter === 'followup') {
+          filtered = filtered.filter(r => r.queryType === 'followup');
+        }
+      }
+      
+      renderReports(filtered);
+    }
+
+    function renderReports(reports) {
+      const grid = document.getElementById('reportsGrid');
+      const t = translations[currentLang];
+      
+      if (reports.length === 0) {
+        renderEmptyState();
+        return;
+      }
+      
+      grid.innerHTML = reports.map(report => {
+        const badgeClass = report.mode === 'quick' ? 'badge-quick' : 'badge-deep';
+        const queryTypeBadge = report.queryType === 'followup' ? 'badge-followup' : 'badge-initial';
+        const queryTypeText = report.queryType === 'followup' ? t.badgeFollowup : t.badgeInitial;
+
+        // —— 安全格式化时间，避免 Invalid Date ——
+        const rawDate =
+          report.createdAt ||
+          report.completedAt ||
+          report.finishedAt ||
+          report.timestamp ||
+          report.time ||
+          report.date;
+
+        let dateStr = '—';
+        if (rawDate) {
+          const d = new Date(rawDate);
+          if (!isNaN(d.getTime())) {
+            dateStr = d.toLocaleString(
+              currentLang === 'zh' ? 'zh-CN' :
+              currentLang === 'ja' ? 'ja-JP' : 'en-US'
+            );
+          }
+        }
+        
+        return `
+          <div class="report-card">
+            <div class="report-card-header">
+              <div class="report-badges">
+                <span class="report-badge ${badgeClass}">${report.mode.toUpperCase()}</span>
+                ${report.queryType ? `<span class="report-badge ${queryTypeBadge}">${queryTypeText}</span>` : ''}
+              </div>
+            </div>
+            <div class="report-title">${escapeHtml(report.title || report.idea.substring(0, 80))}</div>
+            <div class="report-meta">${dateStr}</div>
+            <div class="report-actions">
+              <button class="action-btn btn-view" onclick="viewReport('${report.id}')">${t.btnView}</button>
+              <button class="action-btn btn-visualize" onclick="visualizeReport('${report.id}')">${t.btnVisualize}</button>
+              <button class="action-btn btn-export" onclick="exportReport('${report.id}')">${t.btnExport}</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderEmptyState() {
+      const t = translations[currentLang];
+      document.getElementById('reportsGrid').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">${t.emptyIcon}</div>
+          <div class="empty-state-title">${t.emptyTitle}</div>
+          <div class="empty-state-text">${t.emptyText}</div>
+        </div>
+      `;
+    }
+
+    function viewReport(reportId) {
+      // reportId 实际上是 history item 的 id
+      const report = allReports.find(r => String(r.id) === String(reportId));
+      if (!report) {
+        alert(translations[currentLang].errorNotFound || 'Report not found');
+        return;
+      }
+      
+      // 打开主页并显示报告
+      const url = new URL('/', window.location.origin);
+      window.location.href = url.toString();
+      
+      // 使用 sessionStorage 传递报告数据
+      sessionStorage.setItem('viewReport', JSON.stringify({
+        report: report.report,
+        title: report.idea
+      }));
+    }
+
+    function visualizeReport(reportId) {
+      const report = allReports.find(r => String(r.id) === String(reportId));
+      if (!report) {
+        alert(translations[currentLang].errorNotFound || 'Report not found');
+        return;
+      }
+      
+      const startMarker = "JSON_OUTPUT_START";
+      const endMarker = "JSON_OUTPUT_END";
+      const start = report.report.indexOf(startMarker);
+      const end = report.report.indexOf(endMarker);
+
+      if (start === -1 || end === -1) {
+        alert(translations[currentLang].errorVisualize || 'No visualization data found');
+        return;
+      }
+
+      const jsonText = report.report.slice(start + startMarker.length, end).trim();
+      try {
+        const data = JSON.parse(jsonText);
+        sessionStorage.setItem('visualizationData', JSON.stringify(data));
+        sessionStorage.setItem('visualizationLang', currentLang);
+        window.open('/visualize.html', '_blank');
+      } catch (e) {
+        console.error('JSON parse error:', e);
+        alert(translations[currentLang].errorParse || 'Failed to parse visualization data');
+      }
+    }
+
+    async function exportReport(reportId) {
+      const t = translations[currentLang];
+      
+      try {
+        const report = allReports.find(r => String(r.id) === String(reportId));
+        if (!report) {
+          alert(t.errorNotFound);
+          return;
+        }
+
+        const filename = `complens-report-${reportId}-${Date.now()}.md`;
+        const blob = new Blob([report.report || ''], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        console.log(`✅ ${t.exportSuccess}: ${filename}`);
+      } catch (error) {
+        console.error('Export error:', error);
+        alert(t.errorLoad);
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Initialize
+    switchLanguage(currentLang);
+    loadReports();
+  </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "tasks": {
+    "dev": "deno run --allow-net --allow-read --allow-env --watch server.ts"
+  },
+  "imports": {
+    "@corespeed/zypher": "jsr:@corespeed/zypher@^0.5.1",
+    "rxjs-for-await": "npm:rxjs-for-await@^1.0.0",
+    "@google-cloud/storage": "npm:@google-cloud/storage@^7.0.0"
+  }
+}

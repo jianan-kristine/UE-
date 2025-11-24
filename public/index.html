@@ -1,0 +1,2167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CompLens - AI Competitive Analysis</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="language-selector">
+        <button class="lang-btn active" data-lang="zh">中文</button>
+        <button class="lang-btn" data-lang="en">EN</button>
+        <button class="lang-btn" data-lang="ja">日本語</button>
+      </div>
+      <div class="header-subtitle" data-i18n="headerSubtitle">AI COMPETITIVE ANALYSIS</div>
+      <h1 data-i18n="headerTitle">发现塑造你竞争优势的<em>洞察</em></h1>
+    </div>
+
+    <div class="content">
+      <div class="input-section" id="inputSection">
+        <label for="ideaInput" data-i18n="inputLabel">输入你的产品想法</label>
+        <textarea
+          id="ideaInput"
+          data-i18n-placeholder="inputPlaceholder"
+          placeholder="例如：一个帮助用户管理个人财务的移动应用，包含预算跟踪、投资建议和自动分类功能..."
+        ></textarea>
+
+        <!-- 文件上传 -->
+        <div style="margin-top: 16px;">
+          <label for="fileInput" data-i18n="fileInputLabel" style="font-size: 12px; text-transform: none; margin-bottom: 8px; color: #9ca3af;">Or upload a file (PDF, Word, TXT, MD)</label>
+          <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.txt,.md" multiple style="display: block; width: 100%; padding: 12px; background: #0a0e1a; color: #e5e7eb; border: 2px solid #1f2937; border-radius: 6px; font-size: 14px; cursor: pointer;" />
+          <small style="color: #6b7280; font-size: 11px; margin-top: 4px; display: block;" data-i18n="fileInputHint">1 file = analyze, 2 files = compare</small>
+        </div>
+
+        <!-- persona / model / tools 控制 -->
+        <div class="advanced-controls">
+          <div class="select-group">
+            <label data-i18n="personaLabel">分析视角（Persona）</label>
+            <!-- 选项由 JS 按语言动态填充 -->
+            <select id="personaSelect"></select>
+          </div>
+          <div class="select-group">
+            <label data-i18n="modelLabel">模型（Model）</label>
+            <!-- 选项由 JS 按语言动态填充 -->
+            <select id="modelSelect"></select>
+          </div>
+          <label class="toggle-label">
+            <input type="checkbox" id="webToolsToggle" checked />
+            <span data-i18n="webToolsLabel">允许使用 Web 抓取（Firecrawl 等重工具）</span>
+          </label>
+          <label class="toggle-label">
+            <input type="checkbox" id="autoContinueToggle" checked />
+            <span data-i18n="autoContinueLabel">允许自动续写长报告（MaxTokens 自动续写）</span>
+          </label>
+        </div>
+
+        <!-- 分析模式选择按钮 -->
+        <div class="button-group">
+          <button type="button" class="button button-quick" id="quickBtn" data-i18n="quickBtn">
+            ⚡ 快速反馈
+          </button>
+          <button type="button" class="button button-deep" id="deepBtn" data-i18n="deepBtn">
+            🔍 深度查找
+          </button>
+        </div>
+
+        <div class="mode-hint" id="modeHint" data-i18n="modeHint">
+          <strong>快速反馈</strong>：限制工具调用，2分钟内快速返回结果<br>
+          <strong>深度查找</strong>：无工具限制，全面深入分析竞品
+        </div>
+
+        <!-- 审批复选框 -->
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="requireToolApproval" />
+            <span id="requireToolApprovalLabel">Require manual approval for Firecrawl calls</span>
+          </label>
+          <small class="help-text" id="requireToolApprovalHelp">When checked, AI will request your permission before calling Firecrawl tools</small>
+        </div>
+      </div>
+
+      <div class="loading-section" id="loadingSection">
+        <div class="spinner">
+          <div></div>
+          <div></div>
+          <div></div>
+        </div>
+        <div class="loading-text" data-i18n="loadingText">正在分析中...</div>
+        <div class="loading-subtext" data-i18n="loadingSubtext">AI 正在搜索和分析竞品信息</div>
+        
+        <!-- 显示当前分析的内容 -->
+        <div class="loading-query-container" id="loadingQueryContainer">
+          <div class="loading-tag" id="loadingTag">首次查询</div>
+          <div class="loading-query" id="loadingQuery"></div>
+        </div>
+        
+        <div class="progress-container">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div class="progress-text" id="progressText">0%</div>
+        <button class="interrupt-button" id="interruptBtn" data-i18n="interruptBtn">⏸️ 中断分析</button>
+      </div>
+
+      <div class="error-message" id="errorMessage"></div>
+
+      <div class="report-section" id="reportSection">
+        <div class="report-header">
+          <h2 data-i18n="reportTitle">分析报告</h2>
+          <div class="report-actions">
+            <button class="visualize-button" id="visualizeBtn" data-i18n="visualizeBtn">
+              📊 可视化
+            </button>
+            <button class="back-button" id="backBtn" data-i18n="backBtn">返回</button>
+          </div>
+        </div>
+        <div class="report-content" id="reportContent"></div>
+
+        <!-- 基于当前报告的追问 -->
+        <div class="followup-section">
+          <label for="followUpInput" data-i18n="followUpLabel">
+            基于本次分析继续追问（例如：请重点比较美国市场收费模式 / 再展开 2 个差异最大的竞品）
+          </label>
+          <textarea id="followUpInput" data-i18n-placeholder="followUpPlaceholder"
+            placeholder="输入你想进一步深挖的问题或方向，然后点击下面按钮继续分析"></textarea>
+          <button class="followup-button" id="followUpBtn" data-i18n="followUpBtn">
+            ➕ 继续沿着这条思路分析
+          </button>
+        </div>
+      </div>
+
+      <!-- 可视化模态框 -->
+      <div class="modal" id="visualModal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 data-i18n="visualTitle">📊 可视化分析</h2>
+            <button class="modal-close" id="modalClose">×</button>
+          </div>
+          <div class="modal-body" id="visualContent"></div>
+        </div>
+      </div>
+
+      <!-- Tool Approval Modal -->
+      <div id="approvalModal" class="approval-modal" style="display: none;">
+        <div class="approval-modal-content">
+          <h3 id="approvalModalTitle">🔔 工具调用审批</h3>
+          <p id="approvalMessage">AI 想要调用以下工具：</p>
+          <div class="approval-details">
+            <div><strong id="approvalToolNameLabel">工具名称：</strong><span id="approvalToolName"></span></div>
+            <div style="margin-top: 12px;">
+              <strong id="approvalToolPurposeLabel">工具用途：</strong>
+              <pre id="approvalToolPurpose" style="margin-top: 8px; white-space: pre-wrap; word-wrap: break-word;">该工具将用于抓取网络数据（Firecrawl），可能会产生额外 API 调用和分析时间。</pre>
+            </div>
+            <div style="margin-top: 12px;"><strong id="approvalToolArgsLabel">参数：</strong><pre id="approvalToolArgs"></pre></div>
+          </div>
+          <div class="approval-actions">
+            <button class="btn-approve" onclick="approveToolCall(true)">✓ 允许</button>
+            <button class="btn-reject" onclick="approveToolCall(false)">✗ 拒绝</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="footer-text">Powered by AI · CompLens © 2025</div>
+    </div>
+
+    <!-- 报告中心 / 历史记录面板 -->
+    <div class="history-panel" id="historyPanel">
+      <div class="history-header">
+        <h3 data-i18n="historyTitle">报告中心 · 历史查询</h3>
+        <button class="history-close" id="historyClose">×</button>
+      </div>
+      <div class="history-list" id="historyList"></div>
+    </div>
+
+    <button class="history-toggle" id="historyToggle">
+      📚
+      <span class="history-badge" id="historyBadge">0</span>
+    </button>
+
+    <button class="history-toggle" id="reportsToggle" style="right: 100px;" title="My Reports">
+      📊
+    </button>
+  </div>
+
+  <script>
+  // Intercept fetch responses to capture progress from analyze endpoints
+  if (window.fetch && !window._fetchWrappedForProgress) {
+    window._fetchWrappedForProgress = true;
+    const _origFetch = window.fetch.bind(window);
+    window.fetch = async function(input, init) {
+      const resp = await _origFetch(input, init);
+      try {
+        const url = typeof input === 'string' ? input : (input && input.url) || '';
+        if (url && (url.endsWith('/api/analyze') || url.endsWith('/api/analyze-file'))) {
+          try {
+            const clone = resp.clone();
+            const data = await clone.json();
+            // call handler if exists
+            if (window.onServerProgress) window.onServerProgress(data);
+          } catch (e) {
+            // ignore JSON parse errors
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+      return resp;
+    };
+  }
+
+  // Default handler: update latest history item with progress
+  window.onServerProgress = function(data){
+    try {
+      const progress = typeof data.progress === 'number' ? data.progress : undefined;
+      const interrupted = !!data.interrupted;
+      const sessionId = data.sessionId || data.session_id || data.session || undefined;
+
+      // Try to find a matching history card by sessionId attribute
+      let el = null;
+      if (sessionId) {
+        el = document.querySelector('.history-item[data-session-id="' + sessionId + '"]');
+      }
+      // fallback: last history item
+      if (!el) {
+        const list = document.querySelectorAll('.history-item');
+        if (list.length) el = list[list.length - 1];
+      }
+      if (!el) return;
+
+      if (typeof progress === 'number') {
+        el.dataset.progress = String(progress);
+      }
+      el.dataset.interrupted = interrupted ? 'true' : 'false';
+
+      // Update visible UI
+      updateHistoryUIElement(el);
+
+    } catch (e) {
+      // noop
+    }
+  };
+
+  // Helper to update a single history element's UI
+  function updateHistoryUIElement(el) {
+    if (!el) return;
+    const interrupted = el.dataset.interrupted === 'true';
+    const progress = el.dataset.progress ? parseInt(el.dataset.progress, 10) : undefined;
+
+    // Get current language translations
+    const t = translations[currentLang] || translations.zh;
+
+    // Ensure a status container exists
+    let status = el.querySelector('.history-status');
+    if (!status) {
+      status = document.createElement('div');
+      status.className = 'history-status';
+      // Insert before actions div if it exists, otherwise append
+      const actionsDiv = el.querySelector('.history-item-actions');
+      if (actionsDiv) {
+        el.insertBefore(status, actionsDiv);
+      } else {
+        el.appendChild(status);
+      }
+    }
+
+    // Reset classes
+    status.className = 'history-status';
+
+    if (interrupted) {
+      status.classList.add('interrupted');
+      if (progress !== undefined) {
+        status.textContent = `${t.statusInterruptedAt} ${progress}%`;
+      } else {
+        status.textContent = t.statusInterrupted;
+      }
+    } else {
+      // If not interrupted and progress exists, show completed
+      if (progress !== undefined) {
+        if (progress >= 100) {
+          status.classList.add('completed');
+          status.textContent = t.statusCompleted;
+        } else {
+          status.textContent = `${t.statusProgress} ${progress}%`;
+        }
+      } else {
+        status.style.display = 'none';
+      }
+    }
+  }
+
+  // 审批相关全局变量
+    let currentApprovalId = null;
+    let currentSessionId = null;
+    let currentCheckpointId = null;
+    let currentAnalysisParams = null;
+
+    // 多语言文本配置
+    const i18nTexts = {
+      requireToolApprovalLabel: {
+        en: 'Require manual approval for Firecrawl calls',
+        zh: 'Firecrawl 调用需要手动审批',
+        ja: 'Firecrawl呼び出しに手動承認が必要'
+      },
+      requireToolApprovalHelp: {
+        en: 'When checked, AI will request your permission before calling Firecrawl tools',
+        zh: '勾选后，AI 在调用 Firecrawl 工具前会请求您的许可',
+        ja: 'チェックすると、AIはFirecrawlツールを呼び出す前に許可を求めます'
+      },
+      approvalModalTitle: {
+        en: '🔔 Tool Call Approval',
+        zh: '🔔 工具调用审批',
+        ja: '🔔 ツール呼び出しの承認'
+      },
+      approvalMessage: {
+        en: 'AI wants to call the following tool:',
+        zh: 'AI 想要调用以下工具：',
+        ja: 'AIは次のツールを呼び出したいと思っています：'
+      },
+      approvalToolName: {
+        en: 'Tool Name:',
+        zh: '工具名称：',
+        ja: 'ツール名：'
+      },
+      approvalToolArgs: {
+        en: 'Parameters:',
+        zh: '参数：',
+        ja: 'パラメータ：'
+      },
+      approvalToolPurpose: {
+        en: 'Tool Purpose:',
+        zh: '工具用途：',
+        ja: 'ツールの用途：'
+      },
+      approvalToolPurposeText: {
+        en: 'This tool will be used to fetch external web data via Firecrawl. It may incur extra API calls and additional processing time.',
+        zh: '该工具将用于抓取网络数据（Firecrawl），可能会产生额外 API 调用和分析时间。',
+        ja: 'このツールはFirecrawlを介して外部Webデータを取得します。追加のAPI呼び出しと処理時間が発生する可能性があります。'
+      },
+      approveButton: {
+        en: '✓ Allow',
+        zh: '✓ 允许',
+        ja: '✓ 許可'
+      },
+      rejectButton: {
+        en: '✗ Reject',
+        zh: '✗ 拒绝',
+        ja: '✗ 拒否'
+      }
+    };
+
+    // 更新多语言文本
+    function updateI18nTexts() {
+      const lang = currentLang || 'en'; // 使用全局 currentLang 变量
+      
+      // 更新审批复选框文本
+      const labelEl = document.getElementById('requireToolApprovalLabel');
+      const helpEl = document.getElementById('requireToolApprovalHelp');
+      
+      if (labelEl && i18nTexts.requireToolApprovalLabel[lang]) {
+        labelEl.textContent = i18nTexts.requireToolApprovalLabel[lang];
+      }
+      
+      if (helpEl && i18nTexts.requireToolApprovalHelp[lang]) {
+        helpEl.textContent = i18nTexts.requireToolApprovalHelp[lang];
+      }
+    }
+
+    // 更新审批弹窗标签的多语言支持
+    function updateApprovalModalLabels() {
+      const lang = currentLang || 'en'; // 使用全局 currentLang 变量
+
+      const toolNameLabel = document.getElementById('approvalToolNameLabel');
+      const toolArgsLabel = document.getElementById('approvalToolArgsLabel');
+      const toolPurposeLabel = document.getElementById('approvalToolPurposeLabel');
+      const toolPurpose = document.getElementById('approvalToolPurpose');
+
+      if (toolNameLabel) {
+        toolNameLabel.textContent = i18nTexts.approvalToolName[lang] || i18nTexts.approvalToolName.en;
+      }
+
+      if (toolArgsLabel) {
+        toolArgsLabel.textContent = i18nTexts.approvalToolArgs[lang] || i18nTexts.approvalToolArgs.en;
+      }
+
+      if (toolPurposeLabel) {
+        toolPurposeLabel.textContent = i18nTexts.approvalToolPurpose[lang] || i18nTexts.approvalToolPurpose.en;
+      }
+
+      if (toolPurpose) {
+        toolPurpose.textContent = i18nTexts.approvalToolPurposeText[lang] || i18nTexts.approvalToolPurposeText.en;
+      }
+    }
+
+    // 显示审批弹窗（更新多语言支持）
+    function showApprovalModal(approvalId, toolName, toolArgs, sessionId, checkpointId, analysisParams) {
+      currentApprovalId = approvalId;
+      currentSessionId = sessionId;
+      currentCheckpointId = checkpointId;
+      currentAnalysisParams = analysisParams;
+
+      const lang = currentLang || 'en'; // 使用全局 currentLang 变量
+
+      // 更新弹窗文本
+      const modalTitle = document.querySelector('#approvalModal h3');
+      if (modalTitle) {
+        modalTitle.textContent = i18nTexts.approvalModalTitle[lang] || i18nTexts.approvalModalTitle.en;
+      }
+
+      const modalMessage = document.getElementById('approvalMessage');
+      if (modalMessage) {
+        modalMessage.textContent = i18nTexts.approvalMessage[lang] || i18nTexts.approvalMessage.en;
+      }
+
+      // 更新按钮文本
+      const approveBtn = document.querySelector('.btn-approve');
+      const rejectBtn = document.querySelector('.btn-reject');
+
+      if (approveBtn) {
+        approveBtn.textContent = i18nTexts.approveButton[lang] || i18nTexts.approveButton.en;
+      }
+
+      if (rejectBtn) {
+        rejectBtn.textContent = i18nTexts.rejectButton[lang] || i18nTexts.rejectButton.en;
+      }
+
+      // 更新所有标签（包括工具用途）
+      updateApprovalModalLabels();
+
+      // 填充具体数据
+      document.getElementById('approvalToolName').textContent = toolName;
+      document.getElementById('approvalToolArgs').textContent = JSON.stringify(toolArgs, null, 2);
+      document.getElementById('approvalModal').style.display = 'flex';
+    }
+
+    // 页面加载时初始化所有文本
+    document.addEventListener('DOMContentLoaded', () => {
+      updateI18nTexts();
+      updateApprovalModalLabels();
+    });
+
+    // 审批工具调用
+    async function approveToolCall(approved) {
+      console.log('👆 ============================================');
+      console.log(`👆 User clicked: ${approved ? 'APPROVE ✅' : 'REJECT ❌'}`);
+      console.log('👆 ============================================');
+      console.log('   approvalId:', currentApprovalId);
+      
+      if (!currentApprovalId) {
+        console.error('❌ ERROR: No currentApprovalId!');
+        return;
+      }
+
+      try {
+        console.log('📤 Sending approval decision to backend...');
+        
+        // 发送审批决定
+        const response = await fetch('/api/tool-approval', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            approvalId: currentApprovalId,
+            approved,
+            reason: approved ? 'User approved' : 'User rejected'
+          })
+        });
+
+        console.log('📥 Response status:', response.status);
+
+        if (!response.ok) {
+          throw new Error('Failed to submit approval');
+        }
+
+        const data = await response.json();
+        console.log('📥 Response data:', data);
+
+        // 关闭弹窗
+        document.getElementById('approvalModal').style.display = 'none';
+        console.log('✅ Modal closed');
+
+        if (approved) {
+          // 继续分析
+          console.log('✅ ============================================');
+          console.log('✅ Tool approved, continuing analysis...');
+          console.log('✅ ============================================');
+          await continueAnalysisAfterApproval();
+        } else {
+          // 拒绝后停止
+          console.log('❌ ============================================');
+          console.log('❌ Tool rejected, analysis stopped');
+          console.log('❌ ============================================');
+          const loadingSection = document.getElementById('loadingSection');
+          const inputSection = document.getElementById('inputSection');
+          if (loadingSection) loadingSection.classList.remove('visible');
+          if (inputSection) inputSection.classList.remove('hidden');
+          
+          alert(translations[currentLang || 'zh'].errorAnalysis || '分析已停止：工具调用被拒绝');
+        }
+      } catch (error) {
+        console.error('❌ Error submitting approval:', error);
+        alert('审批失败: ' + error.message);
+        const loadingSection = document.getElementById('loadingSection');
+        if (loadingSection) loadingSection.classList.remove('visible');
+      }
+    }
+
+    // 审批后继续分析
+    async function continueAnalysisAfterApproval() {
+      if (!currentAnalysisParams) {
+        console.error('❌ No currentAnalysisParams found!');
+        return;
+      }
+
+      console.log('🔄 ============================================');
+      console.log('🔄 CONTINUING ANALYSIS AFTER APPROVAL');
+      console.log('🔄 ============================================');
+      console.log('   currentCheckpointId:', currentCheckpointId);
+      console.log('   currentSessionId:', currentSessionId);
+      console.log('   currentAnalysisParams:', currentAnalysisParams);
+
+      try {
+        // Show loading again
+        const loadingSection = document.getElementById('loadingSection');
+        const loadingText = document.querySelector('.loading-text');
+        if (loadingSection && !loadingSection.classList.contains('visible')) {
+          loadingSection.classList.add('visible');
+        }
+        if (loadingText) {
+          loadingText.textContent = translations[currentLang || 'zh'].loadingText;
+        }
+
+        // 使用保存的 checkpoint 继续
+        const requestBody = {
+          ...currentAnalysisParams,
+          checkpointId: currentCheckpointId,
+          sessionId: currentSessionId,
+        };
+
+        console.log('📤 Sending continue request:', JSON.stringify(requestBody, null, 2));
+
+        const response = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        });
+
+        console.log('📥 Response status:', response.status);
+        console.log('📥 Response ok:', response.ok);
+
+        const rawText = await response.text();
+        console.log('📥 Raw response:', rawText.substring(0, 500));
+
+        let data;
+        try {
+          data = JSON.parse(rawText);
+        } catch (e) {
+          console.error('❌ Failed to parse response as JSON:', e);
+          throw new Error('Invalid JSON response: ' + rawText.substring(0, 100));
+        }
+
+        console.log('📥 Parsed data:', data);
+
+        if (!response.ok) {
+          console.error('❌ Response not OK');
+          throw new Error(data.error || `HTTP ${response.status}: ${rawText.substring(0, 200)}`);
+        }
+
+        if (data.needsApproval) {
+          // 又需要审批
+          console.log('🔔 Another tool approval required');
+          currentCheckpointId = data.checkpointId;
+          showApprovalModal(
+            data.approvalId,
+            data.toolName,
+            data.toolArgs,
+            currentSessionId,
+            data.checkpointId,
+            currentAnalysisParams
+          );
+        } else {
+          // 分析完成
+          console.log('✅ Analysis completed successfully');
+          const loadingSection = document.getElementById('loadingSection');
+          const reportSection = document.getElementById('reportSection');
+          const reportContent = document.getElementById('reportContent');
+
+          if (loadingSection) loadingSection.classList.remove('visible');
+          if (reportSection) reportSection.classList.add('visible');
+          if (reportContent) {
+            reportContent.innerHTML = renderMarkdown(data.report || '分析完成');
+            reportContent.dataset.fullReport = data.report;
+          }
+
+          if (data.interrupted) {
+            alert(translations[currentLang || 'zh'].interruptConfirm || '分析被中断，但已保存进度');
+          }
+        }
+      } catch (error) {
+        console.error('❌ ============================================');
+        console.error('❌ ERROR CONTINUING ANALYSIS');
+        console.error('❌ ============================================');
+        console.error('Error continuing analysis:', error);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        // Alert removed - errors are logged to console instead
+        const loadingSection = document.getElementById('loadingSection');
+        if (loadingSection) loadingSection.classList.remove('visible');
+      }
+    }
+
+  // Default language is Chinese
+  let currentLang = 'zh';
+
+  // Translations object
+  const translations = {
+    zh: {
+      headerSubtitle: 'AI 竞品分析',
+      headerTitle: '发现塑造你竞争优势的<em>洞察</em>',
+      inputLabel: '输入你的产品想法',
+      inputPlaceholder: '例如：一个帮助用户管理个人财务的移动应用，包含预算跟踪、投资建议和自动分类功能...',
+      fileInputLabel: '或上传文件（PDF、Word、TXT、MD）',
+      fileInputHint: '1个文件 = 分析，2个文件 = 对比',
+      personaLabel: '分析视角（Persona）',
+      modelLabel: '模型（Model）',
+      webToolsLabel: '允许使用 Web 抓取（Firecrawl 等重工具）',
+      autoContinueLabel: '允许自动续写长报告（MaxTokens 自动续写）',
+      quickBtn: '⚡ 快速反馈',
+      deepBtn: '🔍 深度查找',
+      modeHint: '<strong>快速反馈</strong>：限制工具调用，2分钟内快速返回结果<br><strong>深度查找</strong>：无工具限制，全面深入分析竞品',
+      loadingText: '正在分析中...',
+      loadingSubtext: 'AI 正在搜索和分析竞品信息',
+      reportTitle: '分析报告',
+      visualizeBtn: '📊 可视化',
+      backBtn: '返回',
+      errorEmpty: '请输入产品想法，或上传一个包含产品信息的文件',
+      errorNetwork: '网络错误，请重试',
+      errorAnalysis: '分析失败',
+      errorBusy: '服务器繁忙，请稍后重试',
+      historyTitle: '报告中心 · 历史查询',
+      quickMode: '快速',
+      deepMode: '深度',
+      continueBtn: '继续分析',
+      viewReportBtn: '查看报告',
+      viewVisualBtn: '可视化',
+      visualizeNoJson: '报告中未找到 JSON 数据',
+      visualizeError: '解析 JSON 数据失败',
+      interruptBtn: '⏸️ 中断分析',
+      interruptConfirm: '确定要中断当前分析吗？',
+      followUpLabel: '基于本次分析继续追问（例如：请重点比较美国市场收费模式 / 再展开 2 个差异最大的竞品）',
+      followUpPlaceholder: '输入你想进一步深挖的问题或方向，然后点击下面按钮继续分析',
+      followUpBtn: '➕ 继续沿着这条思路分析',
+      loadingTagInitial: '首次查询',
+      loadingTagFollowup: '追问',
+      loadingQueryPrefix: '问题：',
+      loadingFollowupPrefix: '追问：',
+      statusInterrupted: '⏸️ 已中断',
+      statusInterruptedAt: '⏸️ 中断于',
+      statusCompleted: '✓ 已完成',
+      statusProgress: '进度:',
+      waitingApproval: '⏸️ 等待工具调用审批...',
+      personaOptions: [
+        { value: 'pm',     label: '产品经理' },
+        { value: 'vc',     label: '投资人' },
+        { value: 'growth', label: '增长 / 运营' },
+        { value: 'tech',   label: '技术负责人' },
+      ],
+      modelOptions: [
+        { value: 'deepseek-fast',      label: 'Deepseek - 快速 / 便宜' },
+        { value: 'deepseek-accurate',  label: 'Deepseek - 精准 / 高质量' },
+        { value: 'openai-gpt4',        label: 'OpenAI GPT-4（预留）' },
+        { value: 'anthropic-claude',   label: 'Anthropic Claude（预留）' },
+      ],
+    },
+    en: {
+      headerSubtitle: 'AI COMPETITIVE ANALYSIS',
+      headerTitle: 'Discover <em>insights</em> that shape your competitive edge',
+      inputLabel: 'Enter Your Product Idea',
+      inputPlaceholder: 'Example: A mobile app for personal finance management with budget tracking, investment advice, and automatic categorization...',
+      fileInputLabel: 'Or upload a file (PDF, Word, TXT, MD)',
+      fileInputHint: '1 file = analyze, 2 files = compare',
+      personaLabel: 'Analysis Persona',
+      modelLabel: 'Model',
+      webToolsLabel: 'Allow web crawling tools (Firecrawl, etc.)',
+      autoContinueLabel: 'Allow automatic continuation for long reports (MaxTokens)',
+      quickBtn: '⚡ Quick Feedback',
+      deepBtn: '🔍 Deep Search',
+      modeHint: '<strong>Quick Feedback</strong>: Limited tool calls, fast results within 2 minutes<br><strong>Deep Search</strong>: No tool limits, comprehensive competitor analysis',
+      loadingText: 'Analyzing...',
+      loadingSubtext: 'AI is searching and analyzing competitor information',
+      reportTitle: 'Analysis Report',
+      visualizeBtn: '📊 Visualize',
+      backBtn: 'Back',
+      errorEmpty: 'Please enter a product idea or upload a file.',
+      errorNetwork: 'Network error, please try again',
+      errorAnalysis: 'Analysis failed',
+      errorBusy: 'Server is busy, please try again later',
+      historyTitle: 'Report Center · History',
+      quickMode: 'Quick',
+      deepMode: 'Deep',
+      continueBtn: 'Continue',
+      viewReportBtn: 'View Report',
+      viewVisualBtn: 'Visualize',
+      visualizeNoJson: 'No JSON data found in the report',
+      visualizeError: 'Failed to parse JSON data',
+      interruptBtn: '⏸️ Interrupt Analysis',
+      interruptConfirm: 'Are you sure you want to interrupt the current analysis?',
+      followUpLabel: 'Ask a follow-up based on this analysis (e.g., focus on US pricing / expand on 2 most different competitors)',
+      followUpPlaceholder: 'Type what you want to dig deeper into, then click the button below to continue.',
+      followUpBtn: '➕ Continue along this direction',
+      loadingTagInitial: 'Initial Query',
+      loadingTagFollowup: 'Follow-up',
+      loadingQueryPrefix: 'Query: ',
+      loadingFollowupPrefix: 'Follow-up: ',
+      statusInterrupted: '⏸️ Interrupted',
+      statusInterruptedAt: '⏸️ Interrupted at',
+      statusCompleted: '✓ Completed',
+      statusProgress: 'Progress:',
+      waitingApproval: '⏸️ Waiting for tool approval...',
+      personaOptions: [
+        { value: 'pm',     label: 'Product Manager' },
+        { value: 'vc',     label: 'Investor' },
+        { value: 'growth', label: 'Growth / Operations' },
+        { value: 'tech',   label: 'Tech Lead' },
+      ],
+      modelOptions: [
+        { value: 'deepseek-fast',      label: 'Deepseek - Fast / Cheap' },
+        { value: 'deepseek-accurate',  label: 'Deepseek - Accurate / High Quality' },
+        { value: 'openai-gpt4',        label: 'OpenAI GPT-4 (reserved)' },
+        { value: 'anthropic-claude',   label: 'Anthropic Claude (reserved)' },
+      ],
+    },
+    ja: {
+      headerSubtitle: 'AI 競合分析',
+      headerTitle: '競争優位性を形作る<em>洞察</em>を発見',
+      inputLabel: '製品アイデアを入力',
+      inputPlaceholder: '例：予算追跡、投資アドバイス、自動分類機能を備えた個人財務管理モバイルアプリ...',
+      fileInputLabel: 'またはファイルをアップロード（PDF、Word、TXT、MD）',
+      fileInputHint: '1ファイル = 分析、2ファイル = 比較',
+      personaLabel: '分析ペルソナ',
+      modelLabel: 'モデル',
+      webToolsLabel: 'Web クローリングツール（Firecrawl など）を許可',
+      autoContinueLabel: '長いレポートの自動継続（MaxTokens）を許可',
+      quickBtn: '⚡ クイック分析',
+      deepBtn: '🔍 詳細分析',
+      modeHint: '<strong>クイック分析</strong>：ツール呼び出しを制限、2分以内に結果を返す<br><strong>詳細分析</strong>：ツール制限なし、包括的な競合分析',
+      loadingText: '分析中...',
+      loadingSubtext: 'AIが競合情報を検索・分析しています',
+      reportTitle: '分析レポート',
+      visualizeBtn: '📊 視覚化',
+      backBtn: '戻る',
+      errorEmpty: '製品アイデアを入力するか、製品情報を含むファイルをアップロードしてください',
+      errorNetwork: 'ネットワークエラー、もう一度お試しください',
+      errorAnalysis: '分析に失敗しました',
+      errorBusy: 'サーバーが混雑しています。しばらくしてからもう一度お試しください',
+      historyTitle: 'レポートセンター・履歴',
+      quickMode: 'クイック',
+      deepMode: '詳細',
+      continueBtn: '続ける',
+      viewReportBtn: 'レポート',
+      viewVisualBtn: '視覚化',
+      visualizeNoJson: 'レポートに JSON データが見つかりません',
+      visualizeError: 'JSON データの解析に失敗しました',
+      interruptBtn: '⏸️ 分析を中断',
+      interruptConfirm: '現在の分析を中断してもよろしいですか？',
+      followUpLabel: 'この分析に基づいて追質問する（例：米国市場の料金比較 / 最も異なる競合2社を詳しく）',
+      followUpPlaceholder: 'さらに深堀りしたい内容を入力し、下のボタンを押してください。',
+      followUpBtn: '➕ この方向で分析を続ける',
+      loadingTagInitial: '初回クエリ',
+      loadingTagFollowup: '追加質問',
+      loadingQueryPrefix: '質問：',
+      loadingFollowupPrefix: '追加質問：',
+      statusInterrupted: '⏸️ 中断',
+      statusInterruptedAt: '⏸️ 中断：',
+      statusCompleted: '✓ 完了',
+      statusProgress: '進捗:',
+      waitingApproval: '⏸️ ツール承認待ち...',
+      personaOptions: [
+        { value: 'pm',     label: 'プロダクトマネージャー' },
+        { value: 'vc',     label: '投資家' },
+        { value: 'growth', label: 'グロース / オペレーション' },
+        { value: 'tech',   label: '技術責任者' },
+      ],
+      modelOptions: [
+        { value: 'deepseek-fast',      label: 'Deepseek - 高速 / 低コスト' },
+        { value: 'deepseek-accurate',  label: 'Deepseek - 高精度 / 高品質' },
+        { value: 'openai-gpt4',        label: 'OpenAI GPT-4（予約）' },
+        { value: 'anthropic-claude',   label: 'Anthropic Claude（予約）' },
+      ],
+    }
+  };
+
+  function setLanguage(lang) {
+    currentLang = lang;
+
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (translations[lang][key]) {
+        if (translations[lang][key].includes('<') && translations[lang][key].includes('>')) {
+          el.innerHTML = translations[lang][key];
+        } else {
+          el.textContent = translations[lang][key];
+        }
+      }
+    });
+
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      const key = el.getAttribute('data-i18n-placeholder');
+      if (translations[lang][key]) {
+        el.placeholder = translations[lang][key];
+      }
+    });
+
+    // 动态重建 Persona 下拉框
+    const personaSelectEl = document.getElementById('personaSelect');
+    if (personaSelectEl && translations[lang].personaOptions) {
+      const prevValue = personaSelectEl.value || translations[lang].personaOptions[0]?.value || '';
+      personaSelectEl.innerHTML = '';
+      translations[lang].personaOptions.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt.value;
+        option.textContent = opt.label;
+        personaSelectEl.appendChild(option);
+      });
+      if ([...personaSelectEl.options].some(o => o.value === prevValue)) {
+        personaSelectEl.value = prevValue;
+      }
+    }
+
+    // 动态重建 Model 下拉框
+    const modelSelectEl = document.getElementById('modelSelect');
+    if (modelSelectEl && translations[lang].modelOptions) {
+      const prevModel = modelSelectEl.value || translations[lang].modelOptions[0]?.value || '';
+      modelSelectEl.innerHTML = '';
+      translations[lang].modelOptions.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt.value;
+        option.textContent = opt.label;
+        modelSelectEl.appendChild(option);
+      });
+      if ([...modelSelectEl.options].some(o => o.value === prevModel)) {
+        modelSelectEl.value = prevModel;
+      }
+    }
+
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+    });
+
+    localStorage.setItem('preferredLanguage', lang);
+    
+    // 更新审批相关的多语言文本
+    updateI18nTexts();
+    updateApprovalModalLabels();
+    
+    updateHistoryUI(); // 让历史里按钮文案跟着语言变
+  }
+
+  const savedLang = localStorage.getItem('preferredLanguage') || 'zh';
+  document.addEventListener('DOMContentLoaded', () => {
+    setLanguage(savedLang);
+    setSelectedMode('deep'); // 初始默认选深度模式
+    loadHistory(); // 加载历史记录
+  });
+
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      setLanguage(btn.getAttribute('data-lang'));
+    });
+  });
+
+  const ideaInput = document.getElementById('ideaInput');
+  const fileInput = document.getElementById('fileInput');
+  const quickBtn = document.getElementById('quickBtn');
+  const deepBtn = document.getElementById('deepBtn');
+  const inputSection = document.getElementById('inputSection');
+  const loadingSection = document.getElementById('loadingSection');
+  const reportSection = document.getElementById('reportSection');
+  const reportContent = document.getElementById('reportContent');
+  const backBtn = document.getElementById('backBtn');
+  const errorMessage = document.getElementById('errorMessage');
+  const interruptBtn = document.getElementById('interruptBtn');
+  const personaSelect = document.getElementById('personaSelect');
+  const modelSelect = document.getElementById('modelSelect');
+  const webToolsToggle = document.getElementById('webToolsToggle');
+  const autoContinueToggle = document.getElementById('autoContinueToggle');
+  const followUpInput = document.getElementById('followUpInput');
+  const followUpBtn = document.getElementById('followUpBtn');
+  const progressBar = document.getElementById('progressBar');
+  const progressText = document.getElementById('progressText');
+  const loadingTag = document.getElementById('loadingTag');
+  const loadingQuery = document.getElementById('loadingQuery');
+
+  let currentAbortController = null;
+  let progressInterval = null;
+  let lastMode = 'deep'; // 记录最后使用的模式
+  let interruptedThisRun = false; // 记录本次运行是否被中断
+
+  // 设置选中的分析模式（UI 反馈）
+  function setSelectedMode(mode) {
+    if (mode === 'quick') {
+      quickBtn.classList.add('selected');
+      deepBtn.classList.remove('selected');
+    } else {
+      deepBtn.classList.add('selected');
+      quickBtn.classList.remove('selected');
+    }
+    lastMode = mode;
+  }
+
+  function renderMarkdown(text) {
+    return text
+      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+      .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+      .replace(/^\- (.+)$/gim, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/^(.+)$/gim, '<p>$1</p>')
+      .replace(/<p><\/p>/g, '')
+      .replace(/<p>(<h[1-3]>)/g, '$1')
+      .replace(/(<\/h[1-3]>)<\/p>/g, '$1')
+      .replace(/<p>(<ul>)/g, '$1')
+      .replace(/(<\/ul>)<\/p>/g, '$1');
+  }
+
+  function showError(message) {
+    errorMessage.textContent = message;
+    errorMessage.classList.add('visible');
+    setTimeout(() => {
+      errorMessage.classList.remove('visible');
+    }, 5000);
+  }
+
+  async function runAnalysis(mode, options = {}) {
+    const {
+      checkpointId = null,
+      sessionId = null,
+      historyItemId = null,
+      followUp = '',
+      previousProgress = 0, // 新增：前一次的进度
+    } = options;
+
+    // 重置中断标志
+    interruptedThisRun = false;
+
+    const idea = ideaInput.value.trim();
+    const files = fileInput.files;
+    const fileCount = files.length;
+
+    // Validate file count
+    if (fileCount > 2) {
+      showError(
+        currentLang === 'zh'
+          ? '最多只能上传2个文件（1个文件=分析，2个文件=对比）'
+          : currentLang === 'ja'
+            ? '最大2ファイルまで（1ファイル=分析、2ファイル=比較）'
+            : 'Maximum 2 files allowed (1 file = analyze, 2 files = compare)'
+      );
+      return;
+    }
+
+    if (!idea && fileCount === 0 && !followUp) {
+      showError(translations[currentLang].errorEmpty);
+      return;
+    }
+
+    console.log(`📊 runAnalysis called with:`);
+    console.log(`   - mode: ${mode}`);
+    console.log(`   - checkpointId: ${checkpointId || 'null'}`);
+    console.log(`   - sessionId (arg): ${sessionId || 'null'}`);
+    console.log(`   - historyItemId: ${historyItemId || 'null'}`);
+    console.log(`   - followUp: ${followUp ? followUp.slice(0, 60) + '...' : 'none'}`);
+
+    let effectiveSessionId = sessionId || currentSessionId;
+    if (!effectiveSessionId) {
+      effectiveSessionId = Date.now().toString();
+    }
+    currentSessionId = effectiveSessionId;
+    lastMode = mode;
+
+    // Determine what we're analyzing and update loading display
+    const t = translations[currentLang];
+    let querySource = '';
+    const isFollowUp = !!followUp;
+
+    if (followUp) {
+      querySource = followUp;
+    } else if (idea) {
+      querySource = idea;
+    } else if (fileCount === 2) {
+      // Two files: comparison mode
+      querySource = `${files[0].name} vs ${files[1].name}`;
+    } else if (fileCount === 1) {
+      // Single file: analysis mode
+      querySource = files[0].name;
+    }
+
+    // Update loading tag and query text
+    if (loadingTag && loadingQuery) {
+      loadingTag.textContent = isFollowUp ? t.loadingTagFollowup : t.loadingTagInitial;
+      loadingTag.classList.toggle('followup', isFollowUp);
+      
+      const prefix = isFollowUp ? t.loadingFollowupPrefix : t.loadingQueryPrefix;
+      loadingQuery.textContent = prefix + (querySource.length > 150 ? querySource.substring(0, 150) + '...' : querySource);
+    }
+
+    // remove early runningAnalysis write here (will be moved after persona available)
+    inputSection.classList.add('hidden');
+    loadingSection.classList.add('visible');
+    reportSection.classList.remove('visible');
+    quickBtn.disabled = true;
+    deepBtn.disabled = true;
+
+    // Reset and start progress animation
+    // 只有在继续分析（有 checkpointId）时才使用之前的进度
+    // 初始查询和追问都从 0% 开始，除非调用时显式传入 previousProgress
+    const isContinue = !!checkpointId;
+    let startProgress = 0;
+
+    // 优先使用调用参数 previousProgress（明确传入时以此为准）
+    if (typeof previousProgress === 'number' && previousProgress > 0) {
+      startProgress = Math.min(100, Math.max(0, previousProgress));
+      console.log(`🔄 Resuming from provided previousProgress: ${startProgress}%`);
+    } else if (isContinue) {
+      // 如果是继续请求但没有传入 previousProgress，尝试从本地历史里读取
+      startProgress = 0;
+      if (historyItemId) {
+        const historyItem = searchHistory.find(item => item.id === historyItemId);
+        if (historyItem && typeof historyItem.progress === 'number') {
+          startProgress = Math.min(100, Math.max(0, historyItem.progress));
+          console.log(`🔄 Found progress ${startProgress}% from history item ${historyItemId}`);
+        }
+      }
+      console.log(`🔄 Continuing from ${startProgress}% (isContinue=${isContinue})`);
+    } else {
+      // 新任务：从 0% 开始
+      startProgress = 0;
+      console.log(`🆕 Starting new analysis from 0%`);
+    }
+
+    // Set progress bar immediately to startProgress
+    progressBar.style.width = startProgress + '%';
+    progressText.textContent = startProgress + '%';
+
+    console.log(`📊 Progress bar initialized to ${startProgress}%`);
+
+    // Simulate progress (estimated based on timeout)
+    const timeout = mode === 'quick' ? 120000 : 300000; // 2min or 5min
+    const startTime = Date.now();
+    if (progressInterval) clearInterval(progressInterval);
+    progressInterval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      // Calculate progress from startProgress to 95%
+      const progressRange = 95 - startProgress;
+      const additionalProgress = Math.round((elapsed / timeout) * progressRange);
+      const percent = Math.min(95, startProgress + additionalProgress);
+      progressBar.style.width = percent + '%';
+      progressText.textContent = percent + '%';
+    }, 1000);
+
+    currentAbortController = new AbortController();
+
+    const persona = personaSelect.value;
+    const model = modelSelect.value;
+    const allowWebTools = webToolsToggle.checked;
+    const enableAutoContinue = autoContinueToggle.checked;
+    const requireToolApproval = document.getElementById('requireToolApproval')?.checked || false;
+
+    // Now persist runningAnalysis with persona included
+    const runningAnalysis = {
+      idea,
+      mode,
+      sessionId: effectiveSessionId,
+      checkpointId,
+      historyItemId,
+      followUp,
+      persona,
+      timestamp: new Date().toISOString()
+    };
+    localStorage.setItem('runningAnalysis', JSON.stringify(runningAnalysis));
+
+    try {
+      console.log(`🌐 runAnalysis → mode=${mode}, checkpointId=${checkpointId || 'null'}`);
+
+      let response;
+      if (fileCount > 0 && !followUp) {
+        // File upload analysis (single or comparison)
+        const formData = new FormData();
+        
+        // Determine analysis type
+        const analysisType = fileCount === 2 ? 'compare' : 'single';
+        formData.append('analysisType', analysisType);
+        
+        // Add files
+        if (fileCount === 1) {
+          formData.append('file', files[0]);
+        } else if (fileCount === 2) {
+          formData.append('file1', files[0]);
+          formData.append('file2', files[1]);
+        }
+        
+        // Add optional note
+        if (idea) {
+          formData.append('note', idea);
+        }
+        
+        formData.append('language', currentLang);
+        formData.append('mode', mode);
+        formData.append('persona', persona);
+        formData.append('model', model);
+        formData.append('allowWebTools', String(allowWebTools));
+        formData.append('enableAutoContinue', String(enableAutoContinue));
+        formData.append('requireToolApproval', String(requireToolApproval));
+        formData.append('sessionId', effectiveSessionId);
+        if (checkpointId) formData.append('checkpointId', checkpointId);
+
+        console.log(`📤 Uploading ${fileCount} file(s) for ${analysisType} analysis`);
+
+        response = await fetch('/api/analyze-file', {
+          method: 'POST',
+          body: formData,
+          signal: currentAbortController.signal
+        });
+      } else {
+        response = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            idea,
+            followUp,
+            mode,
+            language: currentLang,
+            persona,
+            model,
+            allowWebTools,
+            enableAutoContinue,
+            requireToolApproval,
+            checkpointId,
+            sessionId: effectiveSessionId,
+            previousProgress: startProgress, // 发送起始进度给服务器
+          }),
+          signal: currentAbortController.signal
+        });
+      }
+
+      let raw;
+      try {
+        raw = await response.text();
+      } catch (e) {
+        console.error('Failed to read response body:', e);
+        throw new Error(translations[currentLang].errorNetwork);
+      }
+
+      let data;
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch (e) {
+        console.error('Response is not valid JSON:', raw);
+        throw new Error(raw || translations[currentLang].errorAnalysis);
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || translations[currentLang].errorAnalysis);
+      }
+
+      // Check if approval is needed
+      if (data.needsApproval) {
+        console.log('🔔 ============================================');
+        console.log('🔔 TOOL APPROVAL REQUIRED!');
+        console.log('🔔 ============================================');
+        console.log('   Approval ID:', data.approvalId);
+        console.log('   Tool Name:', data.toolName);
+        console.log('   Tool Args:', JSON.stringify(data.toolArgs, null, 2));
+        console.log('   Checkpoint ID:', data.checkpointId);
+        console.log('   Session ID:', effectiveSessionId);
+        console.log('🔔 ============================================');
+        
+        // Stop progress animation
+        if (progressInterval) {
+          clearInterval(progressInterval);
+          progressInterval = null;
+        }
+        
+        // Keep loading visible but update text
+        const loadingText = document.querySelector('.loading-text');
+        if (loadingText) {
+          loadingText.textContent = translations[currentLang].waitingApproval || '等待审批...';
+          console.log('✅ Updated loading text to "waiting for approval"');
+        }
+        
+        // Save current analysis params for resuming after approval
+        currentAnalysisParams = {
+          idea,
+          followUp,
+          mode,
+          language: currentLang,
+          persona,
+          model,
+          allowWebTools,
+          enableAutoContinue,
+          requireToolApproval,
+        };
+        currentSessionId = effectiveSessionId;
+        currentCheckpointId = data.checkpointId;
+        
+        console.log('💾 Saved analysis params for resuming after approval');
+        
+        // Show approval modal
+        console.log('📱 Calling showApprovalModal...');
+        showApprovalModal(
+          data.approvalId,
+          data.toolName,
+          data.toolArgs,
+          effectiveSessionId,
+          data.checkpointId,
+          currentAnalysisParams
+        );
+        
+        console.log('✅ Approval modal should now be visible');
+        console.log('🔔 Waiting for user decision...');
+        
+        return; // Don't process as completed report
+      }
+
+      let displayReport = data.report;
+      const startMarker = "JSON_OUTPUT_START";
+      const endMarker = "JSON_OUTPUT_END";
+      const start = displayReport.indexOf(startMarker);
+      const end = displayReport.indexOf(endMarker);
+
+      if (start !== -1 && end !== -1) {
+        displayReport = displayReport.substring(0, start) + displayReport.substring(end + endMarker.length);
+      }
+
+      // Clear progress interval and set to 100%
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
+      progressBar.style.width = '100%';
+      progressText.textContent = '100%';
+
+      loadingSection.classList.remove('visible');
+      reportSection.classList.add('visible');
+      reportContent.innerHTML = renderMarkdown(displayReport);
+      reportContent.dataset.fullReport = data.report;
+      delete reportContent.dataset.fromHistory;
+
+      if (followUp) {
+        followUpInput.value = '';
+      }
+
+      localStorage.removeItem('runningAnalysis');
+
+      const interrupted = data.interrupted || false;
+      const newCheckpointId = data.checkpointId || null;
+
+      console.log(`💾 Updating history:`);
+      console.log(`   - historyItemId: ${historyItemId || 'null'}`);
+      console.log(`   - interrupted: ${interrupted}`);
+      console.log(`   - newCheckpointId: ${newCheckpointId || 'null'}`);
+      console.log(`   - sessionId (effective): ${effectiveSessionId}`);
+      console.log(`   - interruptedThisRun: ${interruptedThisRun}`);
+
+      // 如果本次运行已被中断，不要覆盖历史记录
+      if (interruptedThisRun) {
+        console.log('⏸️ Analysis was interrupted by user, skipping history update');
+        return;
+      }
+
+      // Build title based on content
+      let title;
+      if (fileCount === 2) {
+        title = `📊 ${files[0].name} vs ${files[1].name}`;
+      } else if (fileCount === 1) {
+        title = `📄 ${files[0].name}`;
+      } else {
+        title = idea || 'Follow-up';
+      }
+      
+      if (followUp) {
+        title += ' · ' + followUp.slice(0, 40);
+      }
+      
+      const finalProgress = data.progress || (interrupted ? 95 : 100);
+
+      // Determine query type and text
+      const queryType = followUp ? 'followup' : 'initial';
+      const queryText = followUp || idea || (file && file.name) || '';
+
+      // Extract reportId from response (for file analyses)
+      const reportId = data.reportId || null;
+      if (reportId) {
+        console.log(`📋 Report ID from backend: ${reportId}`);
+      }
+
+      if (historyItemId) {
+        updateHistory(historyItemId, title, data.report, interrupted, newCheckpointId, effectiveSessionId, persona, finalProgress, queryType, queryText, reportId);
+      } else {
+        addHistory(title, mode, data.report, interrupted, newCheckpointId, effectiveSessionId, persona, finalProgress, queryType, queryText, reportId);
+      }
+
+    } catch (error) {
+      console.error('Error:', error);
+      
+      // Clear progress interval on error
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
+      
+      loadingSection.classList.remove('visible');
+      inputSection.classList.remove('hidden');
+
+      if (error.name === 'AbortError') {
+        console.log('Analysis interrupted by user');
+      } else {
+        showError(error.message || translations[currentLang].errorNetwork);
+      }
+
+      const runningAnalysisData = localStorage.getItem('runningAnalysis');
+      if (runningAnalysisData) {
+        const analysis = JSON.parse(runningAnalysisData);
+        const interruptMessage = error.name === 'AbortError'
+          ? 'Analysis interrupted by user'
+          : (error.message || 'Analysis interrupted');
+
+        const title = (analysis.idea || 'Analysis') + (analysis.followUp ? ' · ' + analysis.followUp.slice(0, 40) : '');
+        
+        // Get current progress from progress bar
+        const currentProgress = progressBar ? parseInt(progressBar.style.width) || 0 : 0;
+        
+        // Determine query type and text
+        const queryType = analysis.followUp ? 'followup' : 'initial';
+        const queryText = analysis.followUp || analysis.idea || '';
+
+        if (analysis.historyItemId) {
+          updateHistory(analysis.historyItemId, title, interruptMessage, true, analysis.checkpointId, analysis.sessionId, analysis.persona, currentProgress, queryType, queryText);
+        } else {
+          addHistory(title, analysis.mode, interruptMessage, true, analysis.checkpointId, analysis.sessionId, analysis.persona, currentProgress, queryType, queryText);
+        }
+        localStorage.removeItem('runningAnalysis');
+      }
+    } finally {
+      quickBtn.disabled = false;
+      deepBtn.disabled = false;
+      currentAbortController = null;
+      
+      // Clear loading display
+      if (loadingTag) loadingTag.classList.remove('followup');
+      if (loadingQuery) loadingQuery.textContent = '';
+      
+      // Ensure progress interval is cleared
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
+      
+      // Reset currentSearching flag and refresh history UI to show updated item
+      if (currentSearching) {
+        console.log(`✅ Analysis finished for item ${currentSearching}, showing in history again`);
+        currentSearching = null;
+        updateHistoryUI();
+      }
+    }
+  }
+
+  quickBtn.addEventListener('click', () => {
+    setSelectedMode('quick');
+    currentSessionId = Date.now().toString();
+    runAnalysis('quick');
+  });
+
+  deepBtn.addEventListener('click', () => {
+    setSelectedMode('deep');
+    currentSessionId = Date.now().toString();
+    runAnalysis('deep');
+  });
+
+  // 基于当前报告的追问（多轮对话）
+  followUpBtn.addEventListener('click', () => {
+    const followUp = followUpInput.value.trim();
+    if (!followUp) {
+      showError(
+        currentLang === 'zh'
+          ? '请先输入你想追问的问题或方向'
+          : currentLang === 'ja'
+            ? '追質問の内容を入力してください'
+            : 'Please type a follow-up question first.'
+      );
+      return;
+    }
+    if (!currentSessionId) {
+      currentSessionId = Date.now().toString();
+    }
+    
+    // Find the existing history item for this session
+    const existingHistoryItem = searchHistory.find(item => item.sessionId === currentSessionId);
+    const historyItemId = existingHistoryItem ? existingHistoryItem.id : null;
+    
+    console.log(`📝 Follow-up query for session ${currentSessionId}, historyItemId: ${historyItemId || 'new'}`);
+    
+    runAnalysis(lastMode || 'deep', { 
+      followUp, 
+      sessionId: currentSessionId,
+      historyItemId: historyItemId // Pass existing history item ID to update instead of create
+    });
+  });
+
+  interruptBtn.addEventListener('click', async () => {
+    if (confirm(translations[currentLang].interruptConfirm)) {
+      // 设置中断标志
+      interruptedThisRun = true;
+
+      // 获取当前进度
+      const currentProgress = progressBar ? parseInt(progressBar.style.width) || 0 : 0;
+
+      // 尝试向后端请求保存 checkpoint（如果有 sessionId）以便后续继续
+      let savedCheckpointId = null;
+      if (currentSessionId) {
+        try {
+          const resp = await fetch('/api/save-checkpoint', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId: currentSessionId })
+          });
+          if (resp.ok) {
+            const data = await resp.json();
+            savedCheckpointId = data.checkpointId || null;
+            console.log('✅ Saved checkpoint before abort:', savedCheckpointId);
+          } else {
+            console.warn('⚠️ Failed to save checkpoint before abort');
+          }
+        } catch (e) {
+          console.warn('⚠️ Error while saving checkpoint before abort:', e);
+        }
+      }
+
+      // 立即保存中断状态到历史记录（使用刚刚保存的 checkpointId）
+      const runningAnalysisData = localStorage.getItem('runningAnalysis');
+      if (runningAnalysisData) {
+        try {
+          const analysis = JSON.parse(runningAnalysisData);
+          const title = (analysis.idea || 'Analysis') + (analysis.followUp ? ' · ' + analysis.followUp.slice(0, 40) : '');
+
+          // Determine query type and text
+          const queryType = analysis.followUp ? 'followup' : 'initial';
+          const queryText = analysis.followUp || analysis.idea || '';
+
+          if (analysis.historyItemId) {
+            // 更新现有历史记录
+            updateHistory(
+              analysis.historyItemId,
+              title,
+              'Analysis interrupted by user',
+              true, // interrupted
+              savedCheckpointId || analysis.checkpointId || null,
+              analysis.sessionId,
+              analysis.persona,
+              currentProgress,
+              queryType,
+              queryText
+            );
+          } else {
+            // 创建新的历史记录
+            addHistory(
+              title,
+              analysis.mode,
+              'Analysis interrupted by user',
+              true, // interrupted
+              savedCheckpointId || analysis.checkpointId || null,
+              analysis.sessionId,
+              analysis.persona,
+              currentProgress,
+              queryType,
+              queryText
+            );
+          }
+        } catch (e) {
+          console.error('Failed to save interrupted state:', e);
+        }
+      }
+
+      // 中断请求
+      if (currentAbortController) {
+        currentAbortController.abort();
+      }
+
+      // 清理 UI
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
+
+      loadingSection.classList.remove('visible');
+      inputSection.classList.remove('hidden');
+
+      localStorage.removeItem('runningAnalysis');
+    }
+  });
+
+  backBtn.addEventListener('click', () => {
+    reportSection.classList.remove('visible');
+
+    const fromHistory = reportContent.dataset.fromHistory === 'true';
+
+    if (loadingSection.classList.contains('visible')) {
+      delete reportContent.dataset.fromHistory;
+    } else if (fromHistory) {
+      historyPanel.classList.add('open');
+      delete reportContent.dataset.fromHistory;
+    } else {
+      inputSection.classList.remove('hidden');
+    }
+  });
+
+  const visualizeBtn = document.getElementById('visualizeBtn');
+  visualizeBtn.addEventListener('click', () => {
+    const fullReport = reportContent.dataset.fullReport;
+
+    if (!fullReport) {
+      showError(translations[currentLang].error || 'No report data available');
+      return;
+    }
+
+    const startMarker = "JSON_OUTPUT_START";
+    const endMarker = "JSON_OUTPUT_END";
+    const start = fullReport.indexOf(startMarker);
+    const end = fullReport.indexOf(endMarker);
+
+    if (start !== -1 && end !== -1) {
+      const jsonText = fullReport.slice(start + startMarker.length, end).trim();
+      try {
+        const data = JSON.parse(jsonText);
+        sessionStorage.setItem('visualizationData', JSON.stringify(data));
+        sessionStorage.setItem('visualizationLang', currentLang);
+        // Use current origin to open visualize page so localStorage/sessionStorage are from the same origin
+        window.open(location.origin + '/visualize.html', '_blank');
+      } catch (e) {
+        console.error('JSON parse error:', e);
+        showError(translations[currentLang].error || 'Failed to parse report data for visualization');
+      }
+    } else {
+      console.error('JSON markers not found in report');
+      showError(translations[currentLang].error || 'No visualization data found in report');
+    }
+  });
+
+  ideaInput.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      setSelectedMode('deep');
+      currentSessionId = Date.now().toString();
+      runAnalysis('deep');
+    }
+  });
+
+  let searchHistory = [];
+  let currentSearching = null;
+
+  const historyPanel = document.getElementById('historyPanel');
+  const historyToggle = document.getElementById('historyToggle');
+  const historyClose = document.getElementById('historyClose');
+  const historyList = document.getElementById('historyList');
+  const historyBadge = document.getElementById('historyBadge');
+
+  function loadHistory() {
+    const saved = localStorage.getItem('searchHistory');
+    if (saved) {
+      try {
+        searchHistory = JSON.parse(saved);
+        updateHistoryUI();
+      } catch (e) {
+        searchHistory = [];
+      }
+    }
+
+    const runningAnalysisData = localStorage.getItem('runningAnalysis');
+    if (runningAnalysisData) {
+      try {
+        const analysis = JSON.parse(runningAnalysisData);
+        const exists = searchHistory.some(item =>
+          item.idea === analysis.idea &&
+          item.mode === analysis.mode &&
+          Math.abs(new Date(item.timestamp).getTime() - new Date(analysis.timestamp).getTime()) < 60000
+        );
+
+        if (!exists) {
+          const title = (analysis.idea || 'Analysis') + (analysis.followUp ? ' · ' + analysis.followUp.slice(0, 40) : '');
+          addHistory(
+            title,
+            analysis.mode,
+            'Analysis interrupted (page reload/close)',
+            true,
+            analysis.checkpointId,
+            analysis.sessionId
+          );
+        }
+
+        localStorage.removeItem('runningAnalysis');
+      } catch (e) {
+        console.error('Failed to restore interrupted analysis:', e);
+        localStorage.removeItem('runningAnalysis');
+      }
+    }
+  }
+
+  function saveHistory() {
+    localStorage.setItem('searchHistory', JSON.stringify(searchHistory.slice(0, 20)));
+  }
+
+  function addHistory(title, mode, report, interrupted = false, checkpointId = null, sessionId = null, persona = null, progress = null, queryType = 'initial', queryText = '', reportId = null) {
+    const historyItem = {
+      id: Date.now() + Math.random(),
+      idea: title,
+      mode,
+      report,
+      interrupted,
+      checkpointId,
+      sessionId,
+      persona,
+      progress,
+      queryType, // 'initial' or 'followup'
+      queryText, // the actual query text
+      reportId, // backend report ID for file analyses
+      timestamp: new Date().toISOString()
+    };
+    searchHistory.unshift(historyItem);
+    saveHistory();
+    updateHistoryUI();
+  }
+
+  function updateHistory(itemId, title, report, interrupted = false, checkpointId = null, sessionId = null, persona = null, progress = null, queryType = undefined, queryText = undefined, reportId = undefined) {
+    const index = searchHistory.findIndex(item => item.id === itemId);
+    if (index !== -1) {
+      searchHistory[index].idea = title;
+      searchHistory[index].report = report;
+      searchHistory[index].interrupted = interrupted;
+      searchHistory[index].checkpointId = checkpointId;
+      searchHistory[index].sessionId = sessionId || searchHistory[index].sessionId;
+      // store/update persona if provided
+      if (typeof persona !== 'undefined' && persona !== null) {
+        searchHistory[index].persona = persona;
+      }
+      // store/update progress if provided
+      if (typeof progress !== 'undefined' && progress !== null) {
+        searchHistory[index].progress = progress;
+      }
+      // store/update queryType if provided
+      if (typeof queryType !== 'undefined' && queryType !== null) {
+        searchHistory[index].queryType = queryType;
+      }
+      // store/update queryText if provided
+      if (typeof queryText !== 'undefined' && queryText !== null) {
+        searchHistory[index].queryText = queryText;
+      }
+      // store/update reportId if provided
+      if (typeof reportId !== 'undefined' && reportId !== null) {
+        searchHistory[index].reportId = reportId;
+      }
+      searchHistory[index].timestamp = new Date().toISOString();
+      saveHistory();
+      updateHistoryUI();
+      console.log(`✅ Updated history item ${itemId}`);
+    } else {
+      console.warn(`⚠️ History item ${itemId} not found, creating new entry`);
+      addHistory(title, searchHistory[0]?.mode || 'deep', report, interrupted, checkpointId, sessionId, persona, progress, queryType, queryText);
+    }
+  }
+
+  // Helper: map persona value to localized label
+  function getPersonaLabel(value) {
+    if (!value) return '';
+    try {
+      const opts = translations[currentLang] && translations[currentLang].personaOptions;
+      if (!opts) return value;
+      const found = opts.find(function(o){ return o.value === value; });
+      return found ? found.label : value;
+    } catch (e) { return value; }
+  }
+
+  function updateHistoryUI() {
+    historyList.innerHTML = '';
+    
+    // Calculate visible count (exclude currently searching item)
+    let visibleCount = 0;
+
+    if (searchHistory.length > 0) {
+      historyToggle.classList.add('visible');
+    }
+
+    searchHistory.forEach(item => {
+      // Skip the item that is currently being resumed
+      if (currentSearching && item.id === currentSearching) {
+        console.log(`🔄 Skipping history item ${item.id} - currently analyzing`);
+        return;
+      }
+
+      // Count visible items
+      visibleCount++;
+
+      const div = document.createElement('div');
+      div.className = 'history-item';
+      // set identifiers for later lookup
+      div.setAttribute('data-id', String(item.id));
+      if (item.sessionId) div.setAttribute('data-session-id', String(item.sessionId));
+      if (item.interrupted) div.setAttribute('data-interrupted', 'true');
+      if (item.progress) div.setAttribute('data-progress', String(item.progress));
+
+      const title = document.createElement('div');
+      title.className = 'history-item-title';
+      title.textContent = item.idea;
+
+      const meta = document.createElement('div');
+      meta.className = 'history-item-meta';
+
+      const mode = document.createElement('span');
+      mode.className = `history-item-mode ${item.mode}`;
+      mode.textContent = translations[currentLang][item.mode === 'quick' ? 'quickMode' : 'deepMode'];
+
+      const personaSpan = document.createElement('span');
+      personaSpan.className = 'history-item-persona';
+      personaSpan.style.marginLeft = '8px';
+      personaSpan.style.fontSize = '11px';
+      personaSpan.style.color = '#9ca3af';
+      personaSpan.textContent = item.persona ? getPersonaLabel(item.persona) : '';
+
+      const time = document.createElement('span');
+      const date = new Date(item.timestamp);
+      
+      // 检查日期是否有效
+      if (isNaN(date.getTime())) {
+        time.textContent = 'Invalid Date';
+        console.warn('Invalid timestamp:', item.timestamp);
+      } else {
+        const locale = currentLang === 'zh' ? 'zh-CN' : currentLang === 'ja' ? 'ja-JP' : 'en-US';
+        try {
+          time.textContent = date.toLocaleString(locale, {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        } catch (e) {
+          // 降级处理
+          time.textContent = date.toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        }
+      }
+
+      meta.appendChild(mode);
+      meta.appendChild(personaSpan);
+      meta.appendChild(time);
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'history-item-delete';
+      deleteBtn.textContent = '×';
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteHistory(item.id);
+      });
+
+      const actionsDiv = document.createElement('div');
+      actionsDiv.className = 'history-item-actions';
+
+      if (item.interrupted) {
+        const continueBtn = document.createElement('button');
+        continueBtn.className = 'history-action-btn primary';
+        continueBtn.textContent = translations[currentLang].continueBtn;
+        continueBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          continueAnalysis(item);
+        });
+
+        actionsDiv.appendChild(continueBtn);
+      } else {
+        const viewReportBtn = document.createElement('button');
+        viewReportBtn.className = 'history-action-btn';
+        viewReportBtn.textContent = translations[currentLang].viewReportBtn;
+        viewReportBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          viewHistory(item);
+        });
+
+        const visualBtn = document.createElement('button');
+        visualBtn.className = 'history-action-btn';
+        visualBtn.textContent = translations[currentLang].viewVisualBtn;
+        visualBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          viewVisualization(item);
+        });
+
+        actionsDiv.appendChild(viewReportBtn);
+        actionsDiv.appendChild(visualBtn);
+      }
+
+      div.appendChild(title);
+      div.appendChild(meta);
+      div.appendChild(deleteBtn);
+      div.appendChild(actionsDiv);
+
+      historyList.appendChild(div);
+      
+      // 为每个历史卡片更新状态显示
+      updateHistoryUIElement(div);
+    });
+    
+    // Update badge with visible count (not total count)
+    historyBadge.textContent = visibleCount;
+  }
+
+  function viewHistory(item) {
+    historyPanel.classList.remove('open');
+
+    let displayReport = item.report;
+    const startMarker = "JSON_OUTPUT_START";
+    const endMarker = "JSON_OUTPUT_END";
+    const start = displayReport.indexOf(startMarker);
+    const end = displayReport.indexOf(endMarker);
+
+    if (start !== -1 && end !== -1) {
+      displayReport = displayReport.substring(0, start) + displayReport.substring(end + endMarker.length);
+    }
+
+    if (!loadingSection.classList.contains('visible')) {
+      inputSection.classList.add('hidden');
+    }
+
+    reportSection.classList.add('visible');
+    reportContent.innerHTML = renderMarkdown(displayReport);
+    reportContent.dataset.fullReport = item.report;
+    reportContent.dataset.fromHistory = 'true';
+
+    currentSessionId = item.sessionId || currentSessionId;
+  }
+
+  function continueAnalysis(item) {
+    historyPanel.classList.remove('open');
+
+    // Mark this item as currently being resumed
+    currentSearching = item.id;
+    console.log(`🔄 Starting to resume analysis for item ${item.id}`);
+    console.log(`   - checkpointId: ${item.checkpointId || 'null'}`);
+    console.log(`   - progress: ${item.progress || 0}%`);
+    
+    // Update UI to hide the item being resumed
+    updateHistoryUI();
+
+    currentSessionId = item.sessionId || Date.now().toString();
+
+    inputSection.classList.add('hidden');
+    reportSection.classList.remove('visible');
+    loadingSection.classList.add('visible');
+
+    // ⚠️ 不要在这里手动设置进度条！让 runAnalysis 处理
+    // 因为 runAnalysis 会根据 isContinue 和 previousProgress 正确设置
+
+    // Determine if this was a follow-up query
+    const followUpText = (item.queryType === 'followup' && item.queryText) ? item.queryText : '';
+    
+    console.log(`🔄 Resuming as ${item.queryType} with text: "${followUpText.slice(0, 60)}..."`);
+
+    // ✅ 关键：确保传递 checkpointId 和 previousProgress
+    setTimeout(() => {
+      runAnalysis(item.mode, {
+        checkpointId: item.checkpointId || null, // ✅ 必须传递 checkpointId
+        sessionId: currentSessionId,
+        historyItemId: item.id,
+        previousProgress: item.progress || 0,    // ✅ 必须传递 previousProgress
+        followUp: followUpText,
+      });
+    }, 100);
+  }
+
+  function deleteHistory(itemId) {
+    const index = searchHistory.findIndex(item => item.id === itemId);
+    if (index !== -1) {
+      searchHistory.splice(index, 1);
+      saveHistory();
+      updateHistoryUI();
+    }
+  }
+
+  function viewVisualization(item) {
+    historyPanel.classList.remove('open');
+
+    const startMarker = "JSON_OUTPUT_START";
+    const endMarker = "JSON_OUTPUT_END";
+    const start = item.report.indexOf(startMarker);
+    const end = item.report.indexOf(endMarker);
+
+    if (start === -1 || end === -1) {
+      alert(translations[currentLang].visualizeNoJson || 'No JSON data found in the report');
+      return;
+    }
+
+    const jsonStr = item.report.substring(start + startMarker.length, end).trim();
+
+    try {
+      JSON.parse(jsonStr);
+
+      // Open visualize page using current origin
+      const visualizeWindow = window.open(location.origin + '/visualize.html', '_blank');
+      visualizeWindow.addEventListener('load', () => {
+        visualizeWindow.postMessage({ type: 'visualize', data: jsonStr }, '*');
+      });
+    } catch (error) {
+      console.error('Invalid JSON:', error);
+      alert(translations[currentLang].visualizeError || 'Failed to parse JSON data');
+    }
+  }
+
+  historyToggle.addEventListener('click', () => {
+    historyPanel.classList.toggle('open');
+  });
+
+  historyClose.addEventListener('click', () => {
+    historyPanel.classList.remove('open');
+    if (!reportSection.classList.contains('visible') && !loadingSection.classList.contains('visible')) {
+      inputSection.classList.remove('hidden');
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!historyPanel.contains(e.target) && !historyToggle.contains(e.target)) {
+      historyPanel.classList.remove('open');
+      if (!reportSection.classList.contains('visible') && !loadingSection.classList.contains('visible')) {
+        inputSection.classList.remove('hidden');
+      }
+    }
+  });
+
+  // Disable continue buttons when loading
+  (function(){
+  // Look up the loading section by common IDs/classes used in the app
+  const loadingSection = document.getElementById('loadingSection') || document.querySelector('.loading-section') || document.querySelector('#loading-section');
+  if (!loadingSection) return; // nothing to do if no loading section present
+
+  // Selectors matching possible 'Continue Analysis' controls in the history list
+  const selectors = '[data-action="continue"], .continue-analysis, .continue-btn, button.continue, a.continue, .history-action-btn.primary';
+
+  const getControls = () => Array.from(document.querySelectorAll(selectors));
+
+  function setDisabledState(disabled) {
+    for (const el of getControls()) {
+      try {
+        // Button elements: use the native disabled property
+        if (el instanceof HTMLButtonElement || (el.tagName && el.tagName.toUpperCase() === 'BUTTON')) {
+          el.disabled = disabled;
+        }
+
+        // Links: use ARIA and pointer-events to make them inert
+        if ((el instanceof HTMLAnchorElement) || (el.tagName && el.tagName.toUpperCase() === 'A')) {
+          if (disabled) {
+            el.setAttribute('aria-disabled', 'true');
+            el.dataset._disabledByLoading = '1';
+            if (el.style) {
+              el.style.pointerEvents = 'none';
+              el.style.opacity = '0.5';
+            }
+          } else {
+            el.removeAttribute('aria-disabled');
+            delete el.dataset._disabledByLoading;
+            if (el.style) {
+              el.style.pointerEvents = '';
+              el.style.opacity = '';
+            }
+          }
+        }
+
+        // Generic fallback for other control types
+        if (!(el instanceof HTMLButtonElement) && !(el instanceof HTMLAnchorElement)) {
+          if (disabled) {
+            el.setAttribute('aria-disabled', 'true');
+            if (el.style) {
+              el.style.pointerEvents = 'none';
+              el.style.opacity = '0.5';
+            }
+          } else {
+            el.removeAttribute('aria-disabled');
+            if (el.style) {
+              el.style.pointerEvents = '';
+              el.style.opacity = '';
+            }
+          }
+        }
+      } catch (e) {
+        // defensive: ignore any element manipulation errors
+      }
+    }
+  }
+
+  // Prevent click events on matching controls while loading is visible (defensive for custom handlers)
+  document.addEventListener('click', function(ev){
+    var target = ev.target;
+    if (!target || !(target instanceof HTMLElement)) return;
+    var control = (typeof target.closest === 'function') ? target.closest(selectors) : null;
+    if (!control) return;
+    if (loadingSection.classList.contains('visible')) {
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      // Optionally you could show a small toast here to explain why it's disabled
+    }
+  }, true);
+
+  // Observe class changes on the loading section to update controls in real time
+  const mo = new MutationObserver(() => {
+    const disabled = loadingSection.classList.contains('visible');
+    setDisabledState(disabled);
+  });
+  mo.observe(loadingSection, { attributes: true, attributeFilter: ['class'] });
+
+  // Initialize on DOMContentLoaded and immediately in case script runs after load
+  document.addEventListener('DOMContentLoaded', () => setDisabledState(loadingSection.classList.contains('visible')));
+  setDisabledState(loadingSection.classList.contains('visible'));
+})();
+    // 报告中心按钮
+    document.getElementById('reportsToggle')?.addEventListener('click', () => {
+      // Use current origin to ensure pages open under same origin (avoid mixing 0.0.0.0 and localhost)
+      window.open(location.origin + '/reports.html', '_blank');
+    });
+
+    // 让报告按钮始终可见
+    const reportsToggle = document.getElementById('reportsToggle');
+    if (reportsToggle) {
+      reportsToggle.classList.add('visible');
+    }
+  </script>
+
+  <style>
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .help-text {
+      display: block;
+      margin-top: 4px;
+      margin-left: 26px;
+      color: #94a3b8;
+      font-size: 12px;
+    }
+
+    /* Approval Modal Styles */
+    .approval-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+
+    .approval-modal-content {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .approval-modal-content h3 {
+      margin: 0 0 16px 0;
+      color: #f1f5f9;
+    }
+
+    .approval-details {
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 8px;
+      padding: 16px;
+      margin: 16px 0;
+      color: #e2e8f0;
+    }
+
+    .approval-details div {
+      margin: 8px 0;
+    }
+
+    .approval-details strong {
+      color: #f1f5f9;
+    }
+
+    .approval-details pre {
+      margin: 8px 0 0 0;
+      padding: 8px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+
+    .approval-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .btn-approve, .btn-reject {
+      flex: 1;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-approve {
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      color: white;
+    }
+
+    .btn-approve:hover {
+      background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+      transform: translateY(-2px);
+    }
+
+    .btn-reject {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: white;
+    }
+
+    .btn-reject:hover {
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      transform: translateY(-2px);
+    }
+
+    /* Button selected state */
+    .button.selected {
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+      transform: scale(1.02);
+    }
+
+    .button-quick.selected {
+      box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.5);
+    }
+
+    .button-deep.selected {
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.5);
+    }
+
+    /* ...existing styles... */
+  </style>
+</body>
+</html>

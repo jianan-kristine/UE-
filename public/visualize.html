@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>可视化分析 - CompLens</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0a0e1a;
+      color: #e5e7eb;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #0f1419;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      padding: 20px;
+      border: 1px solid #1f2937;
+    }
+
+    .header {
+      text-align: center;
+      padding: 40px 20px 30px;
+      position: relative;
+      border-bottom: 1px solid #1f2937;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      font-weight: 300;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    .language-selector {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .lang-btn {
+      padding: 8px 14px;
+      border: 1px solid #1f2937;
+      background: transparent;
+      color: #9ca3af;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .lang-btn:hover {
+      border-color: #667eea;
+      color: #667eea;
+    }
+
+    .lang-btn.active {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+
+    .back-button {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      padding: 10px 20px;
+      border: 2px solid #667eea;
+      background: transparent;
+      color: #667eea;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .back-button:hover {
+      background: #667eea;
+      color: white;
+      transform: translateX(-2px);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin-top: 30px;
+    }
+
+    .card {
+      background: #0a0e1a;
+      border-radius: 8px;
+      padding: 24px;
+      border: 1px solid #1f2937;
+      transition: all 0.3s;
+      margin-bottom: 20px;
+    }
+
+    .card:hover {
+      box-shadow: 0 4px 12px rgba(102,126,234,0.2);
+      border-color: #667eea;
+    }
+
+    .card h2 {
+      font-size: 18px;
+      margin-bottom: 20px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #e5e7eb;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #1f2937;
+    }
+
+    .card-icon {
+      font-size: 22px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(102,126,234,0.1);
+      color: #667eea;
+      font-size: 13px;
+      margin: 4px 6px 4px 0;
+      border: 1px solid rgba(102,126,234,0.3);
+      font-weight: 500;
+    }
+
+    .pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      margin-right: 6px;
+      background: #667eea;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #1f2937;
+    }
+
+    th {
+      color: #9ca3af;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: #1f2937;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover {
+      background: rgba(102,126,234,0.05);
+    }
+
+    a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(240,147,251,0.1);
+      color: #f093fb;
+      font-size: 13px;
+      margin: 6px 6px 6px 0;
+      border: 1px solid rgba(240,147,251,0.3);
+      font-weight: 500;
+    }
+
+    .section-title {
+      font-size: 12px;
+      color: #9ca3af;
+      margin: 16px 0 8px 0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+    }
+
+    .summary-text {
+      line-height: 1.7;
+      color: #d1d5db;
+      font-size: 15px;
+    }
+
+    ul {
+      margin: 12px 0;
+      padding-left: 20px;
+    }
+
+    li {
+      margin: 6px 0;
+      color: #d1d5db;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .header h1 {
+        font-size: 28px;
+      }
+    }
+
+    .persona-reviews-section {
+      margin-top: 60px;
+      padding: 40px 0;
+      border-top: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .persona-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin-top: 24px;
+    }
+
+    .persona-card {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.6) 100%);
+      border-radius: 16px;
+      padding: 24px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .persona-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+      border-color: rgba(99, 102, 241, 0.5);
+    }
+
+    .persona-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .persona-icon {
+      font-size: 32px;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      background: rgba(99, 102, 241, 0.1);
+    }
+
+    .persona-card.pm .persona-icon {
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    .persona-card.vc .persona-icon {
+      background: rgba(34, 197, 94, 0.1);
+    }
+
+    .persona-card.growth .persona-icon {
+      background: rgba(249, 115, 22, 0.1);
+    }
+
+    .persona-card.tech .persona-icon {
+      background: rgba(168, 85, 247, 0.1);
+    }
+
+    .persona-card-title {
+      flex: 1;
+    }
+
+    .persona-card-title h3 {
+      margin: 0 0 4px 0;
+      font-size: 20px;
+      color: #f1f5f9;
+    }
+
+    .persona-card-title .subtitle {
+      font-size: 13px;
+      color: #94a3b8;
+    }
+
+    .persona-card-content {
+      color: #e2e8f0;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .persona-card-content p {
+      margin: 0 0 12px 0;
+    }
+
+    .persona-card-content ul {
+      margin: 8px 0;
+      padding-left: 20px;
+    }
+
+    .persona-card-content li {
+      margin: 4px 0;
+    }
+
+    .persona-rating {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .rating-label {
+      font-size: 13px;
+      color: #94a3b8;
+    }
+
+    .rating-stars {
+      color: #fbbf24;
+      font-size: 16px;
+    }
+
+    // ...existing styles...
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <button class="back-button" id="backButton">
+        <span>←</span>
+        <span data-i18n="backButton">返回主页</span>
+      </button>
+      <div class="language-selector">
+        <button class="lang-btn active" data-lang="zh">中文</button>
+        <button class="lang-btn" data-lang="en">EN</button>
+        <button class="lang-btn" data-lang="ja">日本語</button>
+      </div>
+      <h1 data-i18n="pageTitle">📊 可视化竞品分析</h1>
+      
+      <!-- Persona 选择器 -->
+      <div style="margin-top: 20px;">
+        <select id="personaSelector" onchange="filterByPersona()" style="padding: 10px 16px; border-radius: 8px; border: 2px solid #667eea; background: rgba(102,126,234,0.1); color: #e5e7eb; font-size: 14px; font-weight: 500; cursor: pointer; outline: none;">
+          <option value="all">👥 显示所有视角</option>
+          <option value="pm">📊 产品经理视角</option>
+          <option value="vc">💰 投资人视角</option>
+          <option value="growth">📈 增长负责人视角</option>
+          <option value="tech">⚙️ 技术负责人视角</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2><span class="card-icon">💡</span> <span data-i18n="productOverview">产品概述</span></h2>
+        <div class="section-title" data-i18n="ideaSummary">Idea Summary</div>
+        <div class="summary-text" id="ideaSummary"></div>
+
+        <div class="section-title" style="margin-top:20px;" data-i18n="targetUsers">Target Users</div>
+        <div id="targetUsers"></div>
+
+        <div class="section-title" style="margin-top:20px;" data-i18n="keyProblems">Key Problems</div>
+        <div id="problems"></div>
+      </div>
+
+      <div class="card">
+        <h2><span class="card-icon">🎯</span> <span data-i18n="opportunities">机会与差异化</span></h2>
+        <div id="opportunities"></div>
+      </div>
+    </div>
+
+    <!-- 市场数据卡片 -->
+    <div class="card" style="margin-top:20px;" id="marketDataCard">
+      <h2><span class="card-icon">📈</span> <span data-i18n="marketData">市场数据</span></h2>
+      <div style="margin-bottom:20px;" id="marketMetrics"></div>
+      <div style="max-width:800px;margin:0 auto;">
+        <canvas id="marketChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+      <h2><span class="card-icon">🏢</span> <span data-i18n="directCompetitors">直接竞争对手</span></h2>
+      <div id="directCompetitors"></div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+      <h2><span class="card-icon">🔄</span> <span data-i18n="adjacentCompetitors">间接竞争 / 替代方案</span></h2>
+      <div id="adjacentCompetitors"></div>
+    </div>
+
+    <!-- Persona Reviews Section -->
+    <div class="persona-reviews-section">
+      <h2 class="section-title" id="personaReviewsTitle">👥 Persona Reviews</h2>
+      <div id="personaReviewsContainer" class="persona-cards-grid"></div>
+    </div>
+
+  </div>
+
+  <script>
+    // 多语言翻译
+    const translations = {
+      zh: {
+        backButton: '返回主页',
+        pageTitle: '📊 可视化竞品分析',
+        productOverview: '产品概述',
+        ideaSummary: '产品概要',
+        targetUsers: '目标用户',
+        keyProblems: '核心问题',
+        opportunities: '机会与差异化',
+        marketData: '市场数据',
+        currentMarketSize: '当前市场规模',
+        projectedMarketSize: '预计市场规模',
+        growthRate: '复合年增长率',
+        marketGrowthTrend: '市场增长趋势',
+        directCompetitors: '直接竞争对手',
+        adjacentCompetitors: '间接竞争 / 替代方案',
+        name: '名称',
+        url: 'URL',
+        targetUsersLabel: '目标用户',
+        keyFeatures: '核心功能',
+        pricing: '定价',
+        differentiation: '差异化',
+        notes: '备注',
+        noDirectCompetitors: '未找到直接竞争对手',
+        noAdjacentCompetitors: '未找到间接竞争对手'
+      },
+      en: {
+        backButton: 'Back to Home',
+        pageTitle: '📊 Competitive Analysis Visualization',
+        productOverview: 'Product Overview',
+        ideaSummary: 'Idea Summary',
+        targetUsers: 'Target Users',
+        keyProblems: 'Key Problems',
+        opportunities: 'Opportunities & Differentiation',
+        marketData: 'Market Data',
+        currentMarketSize: 'Current Market Size',
+        projectedMarketSize: 'Projected Market Size',
+        growthRate: 'CAGR',
+        marketGrowthTrend: 'Market Growth Trend',
+        directCompetitors: 'Direct Competitors',
+        adjacentCompetitors: 'Adjacent Competitors / Alternatives',
+        name: 'Name',
+        url: 'URL',
+        targetUsersLabel: 'Target Users',
+        keyFeatures: 'Key Features',
+        pricing: 'Pricing',
+        differentiation: 'Differentiation',
+        notes: 'Notes',
+        noDirectCompetitors: 'No direct competitors found',
+        noAdjacentCompetitors: 'No adjacent competitors found'
+      },
+      ja: {
+        backButton: 'ホームに戻る',
+        pageTitle: '📊 競合分析の視覚化',
+        productOverview: '製品概要',
+        ideaSummary: '製品サマリー',
+        targetUsers: 'ターゲットユーザー',
+        keyProblems: '主要な課題',
+        opportunities: '機会と差別化',
+        marketData: '市場データ',
+        currentMarketSize: '現在の市場規模',
+        projectedMarketSize: '予測市場規模',
+        growthRate: '年平均成長率',
+        marketGrowthTrend: '市場成長トレンド',
+        directCompetitors: '直接競合',
+        adjacentCompetitors: '間接競合 / 代替案',
+        name: '名前',
+        url: 'URL',
+        targetUsersLabel: 'ターゲットユーザー',
+        keyFeatures: '主要機能',
+        pricing: '価格設定',
+        differentiation: '差別化',
+        notes: '備考',
+        noDirectCompetitors: '直接競合は見つかりません',
+        noAdjacentCompetitors: '間接競合は見つかりません'
+      }
+    };
+
+    let currentLang = 'zh';
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      document.querySelectorAll('[data-i18n]').forEach(elem => {
+        const key = elem.getAttribute('data-i18n');
+        if (translations[lang][key]) {
+          elem.textContent = translations[lang][key];
+        }
+      });
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+      });
+      // 重新渲染竞争对手表格和市场数据(使用新语言的表头)
+      if (window.currentData) {
+        renderMarketData(window.currentData.market_data);
+        renderDirectCompetitors(window.currentData.direct_competitors);
+        renderAdjacentCompetitors(window.currentData.adjacent_competitors);
+      }
+    }
+
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        setLanguage(btn.getAttribute('data-lang'));
+      });
+    });
+
+    // 从 sessionStorage 获取数据和语言设置
+    const dataString = sessionStorage.getItem('visualizationData');
+    const savedLang = sessionStorage.getItem('visualizationLang') || 'zh';
+
+    // 设置语言(在渲染数据之前)
+    setLanguage(savedLang);
+
+    if (!dataString) {
+      document.body.innerHTML = '<div style="text-align:center;padding:100px;color:#e5e7eb;background:#0a0e1a;min-height:100vh;"><h1 style="font-size:24px;font-weight:300;margin-bottom:10px;">❌ No data provided</h1><p style="color:#9ca3af;">Please navigate from the main page.</p></div>';
+    } else {
+      try {
+        const data = JSON.parse(dataString);
+        renderVisualization(data);
+        // 清除 sessionStorage 数据(可选)
+        // sessionStorage.removeItem('visualizationData');
+        // sessionStorage.removeItem('visualizationLang');
+      } catch (e) {
+        document.body.innerHTML = '<div style="text-align:center;padding:100px;color:#e5e7eb;background:#0a0e1a;min-height:100vh;"><h1 style="font-size:24px;font-weight:300;margin-bottom:10px;">❌ Error parsing data</h1><p style="color:#9ca3af;">' + e.message + '</p></div>';
+      }
+    }
+
+    function renderVisualization(data) {
+      // 保存数据以便语言切换时使用
+      window.currentData = data;
+
+      // Render idea summary
+      if (data.idea_summary) {
+        document.getElementById('ideaSummary').textContent = data.idea_summary;
+      }
+
+      // Render target users
+      if (Array.isArray(data.target_users)) {
+        const targetDiv = document.getElementById('targetUsers');
+        data.target_users.forEach(u => {
+          const pill = document.createElement('div');
+          pill.className = 'pill';
+          pill.innerHTML = `<span class="pill-dot"></span>${u}`;
+          targetDiv.appendChild(pill);
+        });
+      }
+
+      // Render problems
+      if (Array.isArray(data.problem)) {
+        const problemsDiv = document.getElementById('problems');
+        const ul = document.createElement('ul');
+        data.problem.forEach(p => {
+          const li = document.createElement('li');
+          li.textContent = p;
+          ul.appendChild(li);
+        });
+        problemsDiv.appendChild(ul);
+      }
+
+      // Render opportunities
+      if (Array.isArray(data.opportunities)) {
+        const oppDiv = document.getElementById('opportunities');
+        data.opportunities.forEach(o => {
+          const tag = document.createElement('div');
+          tag.className = 'tag';
+          tag.textContent = o;
+          oppDiv.appendChild(tag);
+        });
+      }
+
+      // Render market data
+      renderMarketData(data.market_data);
+
+      // Render direct competitors
+      renderDirectCompetitors(data.direct_competitors);
+
+      // Render adjacent competitors
+      renderAdjacentCompetitors(data.adjacent_competitors);
+
+      // Render Persona Reviews
+      renderPersonaReviews(data);
+    }
+
+    function renderDirectCompetitors(competitors) {
+      const container = document.getElementById('directCompetitors');
+      if (!Array.isArray(competitors) || competitors.length === 0) {
+        container.innerHTML = `<p style="color:#666;font-size:14px;text-align:center;padding:20px;">${translations[currentLang].noDirectCompetitors}</p>`;
+        return;
+      }
+
+      container.innerHTML = ''; // 清空容器
+      const table = document.createElement('table');
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th>${translations[currentLang].name}</th>
+            <th>${translations[currentLang].targetUsersLabel}</th>
+            <th>${translations[currentLang].keyFeatures}</th>
+            <th>${translations[currentLang].pricing}</th>
+            <th>${translations[currentLang].differentiation}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${competitors.map(c => `
+            <tr>
+              <td>${c.url ? `<a href="${c.url}" target="_blank">${c.name || 'N/A'}</a>` : (c.name || 'N/A')}</td>
+              <td>${Array.isArray(c.target_users) ? c.target_users.join(', ') : (c.target_users || '')}</td>
+              <td>${Array.isArray(c.key_features) ? c.key_features.join('; ') : (c.key_features || '')}</td>
+              <td>${c.pricing_summary || ''}</td>
+              <td>${c.differentiation || ''}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      `;
+      container.appendChild(table);
+    }
+
+    function renderAdjacentCompetitors(competitors) {
+      const container = document.getElementById('adjacentCompetitors');
+      if (!Array.isArray(competitors) || competitors.length === 0) {
+        container.innerHTML = `<p style="color:#666;font-size:14px;text-align:center;padding:20px;">${translations[currentLang].noAdjacentCompetitors}</p>`;
+        return;
+      }
+
+      container.innerHTML = ''; // 清空容器
+      const table = document.createElement('table');
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th>${translations[currentLang].name}</th>
+            <th>${translations[currentLang].url}</th>
+            <th>${translations[currentLang].notes}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${competitors.map(c => `
+            <tr>
+              <td>${c.name || 'N/A'}</td>
+              <td>${c.url ? `<a href="${c.url}" target="_blank">${c.url}</a>` : ''}</td>
+              <td>${c.notes || ''}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      `;
+      container.appendChild(table);
+    }
+
+    function renderMarketData(marketData) {
+      const card = document.getElementById('marketDataCard');
+
+      if (!marketData) {
+        card.style.display = 'none';
+        return;
+      }
+
+      card.style.display = 'block';
+
+      // Render market metrics
+      const metricsDiv = document.getElementById('marketMetrics');
+      metricsDiv.innerHTML = '';
+
+      const metrics = [];
+      if (marketData.market_size_current) {
+        metrics.push(`<div style="display:inline-block;margin-right:30px;margin-bottom:15px;">
+          <div style="color:#9ca3af;font-size:13px;margin-bottom:5px;">${translations[currentLang].currentMarketSize}</div>
+          <div style="color:#667eea;font-size:20px;font-weight:600;">${marketData.market_size_current}</div>
+        </div>`);
+      }
+      if (marketData.market_size_projected) {
+        metrics.push(`<div style="display:inline-block;margin-right:30px;margin-bottom:15px;">
+          <div style="color:#9ca3af;font-size:13px;margin-bottom:5px;">${translations[currentLang].projectedMarketSize}</div>
+          <div style="color:#667eea;font-size:20px;font-weight:600;">${marketData.market_size_projected}</div>
+        </div>`);
+      }
+      if (marketData.cagr) {
+        metrics.push(`<div style="display:inline-block;margin-right:30px;margin-bottom:15px;">
+          <div style="color:#9ca3af;font-size:13px;margin-bottom:5px;">${translations[currentLang].growthRate}</div>
+          <div style="color:#10b981;font-size:20px;font-weight:600;">${marketData.cagr}</div>
+        </div>`);
+      }
+
+      metricsDiv.innerHTML = metrics.join('');
+
+      // Render chart
+      if (Array.isArray(marketData.growth_timeline) && marketData.growth_timeline.length > 0) {
+        const ctx = document.getElementById('marketChart').getContext('2d');
+
+        // Destroy existing chart if any
+        if (window.marketChartInstance) {
+          window.marketChartInstance.destroy();
+        }
+
+        const years = marketData.growth_timeline.map(d => d.year);
+        const values = marketData.growth_timeline.map(d => d.value);
+
+        window.marketChartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: years,
+            datasets: [{
+              label: translations[currentLang].marketGrowthTrend,
+              data: values,
+              borderColor: '#667eea',
+              backgroundColor: 'rgba(102, 126, 234, 0.1)',
+              borderWidth: 3,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 5,
+              pointHoverRadius: 7,
+              pointBackgroundColor: '#667eea',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: {
+                display: true,
+                position: 'top',
+                labels: {
+                  color: '#e5e7eb',
+                  font: { size: 14 }
+                }
+              },
+              tooltip: {
+                backgroundColor: '#1f2937',
+                titleColor: '#e5e7eb',
+                bodyColor: '#e5e7eb',
+                borderColor: '#374151',
+                borderWidth: 1,
+                padding: 12,
+                displayColors: false,
+                callbacks: {
+                  label: function(context) {
+                    return `${context.parsed.y} billion USD`;
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: {
+                  color: '#374151',
+                  drawBorder: false
+                },
+                ticks: {
+                  color: '#9ca3af',
+                  font: { size: 12 },
+                  callback: function(value) {
+                    return '$' + value + 'B';
+                  }
+                }
+              },
+              x: {
+                grid: {
+                  color: '#374151',
+                  drawBorder: false
+                },
+                ticks: {
+                  color: '#9ca3af',
+                  font: { size: 12 }
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // Render Persona Reviews
+    function renderPersonaReviews(data) {
+      const container = document.getElementById('personaReviewsContainer');
+      if (!container) return;
+
+      // Persona 配置
+      const personas = [
+        {
+          id: 'pm',
+          icon: '📊',
+          titleEN: 'Product Manager',
+          titleZH: '产品经理视角',
+          titleJA: 'プロダクトマネージャー',
+          subtitleEN: 'Feature & Roadmap Focus',
+          subtitleZH: '功能与路线图',
+          subtitleJA: '機能とロードマップ',
+        },
+        {
+          id: 'vc',
+          icon: '💰',
+          titleEN: 'Investor / VC',
+          titleZH: '投资人视角',
+          titleJA: '投資家・VC',
+          subtitleEN: 'Market & Business Model',
+          subtitleZH: '市场与商业模式',
+          subtitleJA: '市場とビジネスモデル',
+        },
+        {
+          id: 'growth',
+          icon: '📈',
+          titleEN: 'Growth Lead',
+          titleZH: '增长负责人视角',
+          titleJA: 'グロースリード',
+          subtitleEN: 'Acquisition & Retention',
+          subtitleZH: '获客与留存',
+          subtitleJA: '獲得とリテンション',
+        },
+        {
+          id: 'tech',
+          icon: '⚙️',
+          titleEN: 'Tech Lead',
+          titleZH: '技术负责人视角',
+          titleJA: 'テックリード',
+          subtitleEN: 'Architecture & Implementation',
+          subtitleZH: '架构与实现',
+          subtitleJA: 'アーキテクチャと実装',
+        },
+      ];
+
+      const lang = localStorage.getItem('visualizationLang') || 'en';
+
+      // 更新标题
+      const titleEl = document.getElementById('personaReviewsTitle');
+      if (titleEl) {
+        const titles = {
+          en: '👥 Persona Reviews',
+          zh: '👥 不同角色视角评价',
+          ja: '👥 ペルソナ別レビュー',
+        };
+        titleEl.textContent = titles[lang] || titles.en;
+      }
+
+      container.innerHTML = '';
+
+      personas.forEach(persona => {
+        const card = document.createElement('div');
+        card.className = `persona-card ${persona.id}`;
+
+        // 获取 persona insight（如果有）
+        let content = '';
+        if (data.personaInsights && data.personaInsights[persona.id]) {
+          content = data.personaInsights[persona.id];
+        } else {
+          // 生成默认内容
+          content = generateDefaultPersonaContent(persona.id, data, lang);
+        }
+
+        // 标题
+        const title = lang === 'zh' ? persona.titleZH : 
+                      lang === 'ja' ? persona.titleJA : 
+                      persona.titleEN;
+        const subtitle = lang === 'zh' ? persona.subtitleZH : 
+                         lang === 'ja' ? persona.subtitleJA : 
+                         persona.subtitleEN;
+
+        // 生成评分（基于数据）
+        const rating = calculatePersonaRating(persona.id, data);
+
+        card.innerHTML = `
+          <div class="persona-card-header">
+            <div class="persona-icon">${persona.icon}</div>
+            <div class="persona-card-title">
+              <h3>${title}</h3>
+              <div class="subtitle">${subtitle}</div>
+            </div>
+          </div>
+          <div class="persona-card-content">
+            ${content}
+          </div>
+          <div class="persona-rating">
+            <span class="rating-label">${lang === 'zh' ? '推荐度' : lang === 'ja' ? '推奨度' : 'Rating'}:</span>
+            <span class="rating-stars">${'★'.repeat(rating)}${'☆'.repeat(5 - rating)}</span>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    // 生成默认 Persona 内容
+    function generateDefaultPersonaContent(personaId, data, lang) {
+      const competitors = data.direct_competitors || [];
+      const opportunities = data.opportunities || [];
+      const risks = data.risks || [];
+      const differentiation = data.differentiation || '';
+
+      if (lang === 'zh') {
+        switch (personaId) {
+          case 'pm':
+            return `
+              <p><strong>产品定位：</strong>${data.idea_summary || '创新产品方案'}</p>
+              <p><strong>核心竞争力：</strong></p>
+              <ul>
+                ${opportunities.slice(0, 2).map(opp => `<li>${opp}</li>`).join('') || '<li>待进一步分析</li>'}
+              </ul>
+              <p><strong>建议：</strong>重点关注核心功能的差异化，建立清晰的产品路线图。</p>
+            `;
+          case 'vc':
+            return `
+              <p><strong>市场空间：</strong>${data.market_data?.market_size_current || '中等规模市场'}</p>
+              <p><strong>竞争格局：</strong>当前有 ${competitors.length} 个主要竞品</p>
+              <p><strong>投资价值：</strong></p>
+              <ul>
+                ${opportunities.slice(0, 2).map(opp => `<li>${opp}</li>`).join('') || '<li>需评估商业模式</li>'}
+              </ul>
+              <p><strong>建议：</strong>需要清晰的商业模式和可验证的增长指标。</p>
+            `;
+          case 'growth':
+            return `
+              <p><strong>目标用户：</strong>${data.target_users?.slice(0, 2).join('、') || '待明确'}</p>
+              <p><strong>获客渠道：</strong>需要根据竞品分析制定获客策略</p>
+              <p><strong>增长机会：</strong></p>
+              <ul>
+                ${opportunities.slice(0, 2).map(opp => `<li>${opp}</li>`).join('') || '<li>待发掘增长点</li>'}
+              </ul>
+              <p><strong>建议：</strong>从 MVP 开始，快速验证用户获取和留存策略。</p>
+            `;
+          case 'tech':
+            return `
+              <p><strong>技术复杂度：</strong>中等（基于竞品分析）</p>
+              <p><strong>关键技术挑战：</strong></p>
+              <ul>
+                ${risks.slice(0, 2).map(risk => `<li>${risk}</li>`).join('') || '<li>需评估技术栈</li>'}
+              </ul>
+              <p><strong>建议：</strong>优先考虑可扩展的架构设计，评估第三方服务集成的可行性。</p>
+            `;
+        }
+      } else if (lang === 'ja') {
+        switch (personaId) {
+          case 'pm':
+            return `
+              <p><strong>プロダクトポジショニング：</strong>${data.idea_summary || '革新的なソリューション'}</p>
+              <p><strong>コア競争力：</strong></p>
+              <ul>
+                ${opportunities.slice(0, 2).map(opp => `<li>${opp}</li>`).join('') || '<li>さらなる分析が必要</li>'}
+              </ul>
+              <p><strong>提案：</strong>コア機能の差別化に注力し、明確なロードマップを策定すること。</p>
+            `;
+          case 'vc':
+            return `
+              <p><strong>市場規模：</strong>${data.market_data?.market_size_current || '中規模市場'}</p>
+              <p><strong>競合状況：</strong>現在 ${competitors.length} の主要競合あり</p>
+              <p><strong>投資価値：</strong></p>
+              <ul>
+                ${opportunities.slice(0, 2).map(opp => `<li>${opp}</li>`).join('') || '<li>ビジネスモデルの評価が必要</li>'}
+              </ul>
+              <p><strong>提案：</strong>明確なビジネスモデルと検証可能な成長指標が必要。</p>
+            `;
+          case 'growth':
+            return `
+              <p><strong>ターゲットユーザー：</strong>${data.target_users?.slice(0, 2).join('、') || '未確定'}</p>
+              <p><strong>獲得チャネル：</strong>競合分析に基づく戦略策定が必要</p>
+              <p><strong>成長機会：</strong></p>
+              <ul>
+                ${opportunities.slice(0, 2).map(opp => `<li>${opp}</li>`).join('') || '<li>成長ポイントの発掘が必要</li>'}
+              </ul>
+              <p><strong>提案：</strong>MVPから開始し、ユーザー獲得とリテンション戦略を迅速に検証すること。</p>
+            `;
+          case 'tech':
+            return `
+              <p><strong>技術的複雑度：</strong>中程度（競合分析に基づく）</p>
+              <p><strong>主要技術課題：</strong></p>
+              <ul>
+                ${risks.slice(0, 2).map(risk => `<li>${risk}</li>`).join('') || '<li>技術スタックの評価が必要</li>'}
+              </ul>
+              <p><strong>提案：</strong>スケーラブルなアーキテクチャを優先し、サードパーティ統合の実現可能性を評価すること。</p>
+            `;
+        }
+      } else {
+        // English
+        switch (personaId) {
+          case 'pm':
+            return `
+              <p><strong>Product Positioning:</strong> ${data.idea_summary || 'Innovative solution'}</p>
+              <p><strong>Core Strengths:</strong></p>
+              <ul>
+                ${opportunities.slice(0, 2).map(opp => `<li>${opp}</li>`).join('') || '<li>Further analysis needed</li>'}
+              </ul>
+              <p><strong>Recommendation:</strong> Focus on differentiating core features and establish a clear product roadmap.</p>
+            `;
+          case 'vc':
+            return `
+              <p><strong>Market Size:</strong> ${data.market_data?.market_size_current || 'Medium-sized market'}</p>
+              <p><strong>Competitive Landscape:</strong> ${competitors.length} main competitors identified</p>
+              <p><strong>Investment Value:</strong></p>
+              <ul>
+                ${opportunities.slice(0, 2).map(opp => `<li>${opp}</li>`).join('') || '<li>Business model evaluation needed</li>'}
+              </ul>
+              <p><strong>Recommendation:</strong> Need clear business model and verifiable growth metrics.</p>
+            `;
+          case 'growth':
+            return `
+              <p><strong>Target Users:</strong> ${data.target_users?.slice(0, 2).join(', ') || 'To be defined'}</p>
+              <p><strong>Acquisition Channels:</strong> Strategy based on competitive analysis needed</p>
+              <p><strong>Growth Opportunities:</strong></p>
+              <ul>
+                ${opportunities.slice(0, 2).map(opp => `<li>${opp}</li>`).join('') || '<li>Identify growth levers</li>'}
+              </ul>
+              <p><strong>Recommendation:</strong> Start with MVP and rapidly validate user acquisition and retention strategies.</p>
+            `;
+          case 'tech':
+            return `
+              <p><strong>Technical Complexity:</strong> Medium (based on competitive analysis)</p>
+              <p><strong>Key Technical Challenges:</strong></p>
+              <ul>
+                ${risks.slice(0, 2).map(risk => `<li>${risk}</li>`).join('') || '<li>Tech stack evaluation needed</li>'}
+              </ul>
+              <p><strong>Recommendation:</strong> Prioritize scalable architecture design and evaluate feasibility of third-party integrations.</p>
+            `;
+        }
+      }
+
+      return '<p>No specific insights available for this perspective.</p>';
+    }
+
+    // 计算 Persona 评分
+    function calculatePersonaRating(personaId, data) {
+      const opportunities = data.opportunities?.length || 0;
+      const competitors = data.direct_competitors?.length || 0;
+      const risks = data.risks?.length || 0;
+
+      // 简单评分逻辑
+      let score = 3; // 基础分
+
+      if (opportunities > 3) score += 1;
+      if (opportunities > 5) score += 0.5;
+      if (competitors < 5) score += 0.5;
+      if (risks < 3) score += 0.5;
+
+      return Math.min(5, Math.max(1, Math.round(score)));
+    }
+
+    // Back button 处理
+    document.getElementById('backButton').addEventListener('click', () => {
+      window.close();
+    });
+
+    // Persona 过滤函数
+    function filterByPersona() {
+      const selectedPersona = document.getElementById('personaSelector').value;
+      const allCards = document.querySelectorAll('.persona-card');
+      
+      console.log(`🎯 Filtering by persona: ${selectedPersona}`);
+      
+      if (selectedPersona === 'all') {
+        // 显示所有视角
+        allCards.forEach(card => {
+          card.style.display = 'block';
+        });
+        console.log('✅ Showing all personas');
+      } else {
+        // 只显示选中的视角，隐藏其他
+        allCards.forEach(card => {
+          if (card.classList.contains(selectedPersona)) {
+            card.style.display = 'block';
+            console.log(`✅ Showing ${selectedPersona} card`);
+          } else {
+            card.style.display = 'none';
+            console.log(`❌ Hiding ${card.className} card`);
+          }
+        });
+      }
+      
+      // 更新选择器文本（多语言支持）
+      updatePersonaSelectorText(selectedPersona);
+    }
+    
+    // 更新选择器文本的多语言支持
+    function updatePersonaSelectorText(selectedPersona) {
+      const selector = document.getElementById('personaSelector');
+      if (!selector) return;
+      
+      const lang = currentLang || 'zh';
+      
+      const options = {
+        all: {
+          zh: '👥 显示所有视角',
+          en: '👥 Show All Perspectives',
+          ja: '👥 すべての視点を表示'
+        },
+        pm: {
+          zh: '📊 产品经理视角',
+          en: '📊 Product Manager',
+          ja: '📊 プロダクトマネージャー'
+        },
+        vc: {
+          zh: '💰 投资人视角',
+          en: '💰 Investor',
+          ja: '💰 投資家'
+        },
+        growth: {
+          zh: '📈 增长负责人视角',
+          en: '📈 Growth Lead',
+          ja: '📈 グロースリード'
+        },
+        tech: {
+          zh: '⚙️ 技术负责人视角',
+          en: '⚙️ Tech Lead',
+          ja: '⚙️ テックリード'
+        }
+      };
+      
+      // 更新所有选项的文本
+      Array.from(selector.options).forEach(option => {
+        const value = option.value;
+        if (options[value] && options[value][lang]) {
+          option.textContent = options[value][lang];
+        }
+      });
+    }
+    
+    // 页面加载后初始化选择器文本
+    document.addEventListener('DOMContentLoaded', () => {
+      updatePersonaSelectorText('all');
+    });
+  </script>
+</body>
+</html>

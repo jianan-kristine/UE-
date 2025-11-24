@@ -1,0 +1,17 @@
+curl -X POST http://localhost:8001/api/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "idea": "AI productivity tool",
+    "mode": "deep",
+    "language": "en",
+    "requireToolApproval": true,
+    "sessionId": "test123"
+  }'.env
+*.env
+gcp-storage-key.json
+*.json.key
+.DS_Store
+*.log
+.deno/
+.vscode/
+.idea/

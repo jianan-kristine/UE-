@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Report Details - CompLens</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:24px;color:#111}
+    .container{max-width:900px;margin:0 auto}
+    .back{display:inline-block;margin-bottom:16px;padding:8px 12px;background:#eee;border-radius:6px;text-decoration:none;color:#111}
+    .meta{color:#666;margin-bottom:12px}
+    .report{white-space:pre-wrap;background:#fafafa;padding:16px;border-radius:8px;border:1px solid #eee}
+
+    .report-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      min-height: 100vh;
+    }
+
+    .report-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #1f2937;
+    }
+
+    .report-title-area h1 {
+      font-size: 28px;
+      font-weight: 300;
+      color: #e5e7eb;
+      margin-bottom: 12px;
+    }
+
+    .report-meta {
+      display: flex;
+      gap: 16px;
+      font-size: 13px;
+      color: #9ca3af;
+      flex-wrap: wrap;
+    }
+
+    .report-badge {
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-quick {
+      background: rgba(102, 126, 234, 0.1);
+      color: #667eea;
+    }
+
+    .badge-deep {
+      background: rgba(240, 147, 251, 0.1);
+      color: #f093fb;
+    }
+
+    .badge-initial {
+      background: rgba(59, 130, 246, 0.1);
+      color: #3b82f6;
+    }
+
+    .badge-followup {
+      background: rgba(251, 191, 36, 0.1);
+      color: #fbbf24;
+    }
+
+    .persona-badge {
+      padding: 4px 10px;
+      border-radius: 4px;
+      background: rgba(34, 197, 94, 0.1);
+      color: #22c55e;
+    }
+
+    .file-info {
+      padding: 4px 12px;
+      border-radius: 4px;
+      background: rgba(99, 102, 241, 0.1);
+      color: #6366f1;
+      font-size: 13px;
+    }
+
+    .file-download-link {
+      padding: 4px 12px;
+      border-radius: 4px;
+      background: rgba(99, 102, 241, 0.1);
+      color: #6366f1;
+      text-decoration: none;
+      font-size: 13px;
+      transition: all 0.3s;
+      display: inline-block;
+    }
+
+    .file-download-link:hover {
+      background: rgba(99, 102, 241, 0.2);
+      transform: translateX(2px);
+    }
+
+    .report-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border: none;
+    }
+
+    .btn-back {
+      background: transparent;
+      border: 2px solid #667eea;
+      color: #667eea;
+    }
+
+    .btn-back:hover {
+      background: #667eea;
+      color: white;
+      transform: translateX(-2px);
+    }
+
+    .btn-export {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-export:hover {
+      background: linear-gradient(135deg, #5568d3 0%, #63408a 100%);
+      transform: translateY(-1px);
+    }
+
+    .btn-reanalyze {
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      color: white;
+    }
+
+    .btn-reanalyze:hover {
+      background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+      transform: translateY(-1px);
+    }
+
+    .report-content {
+      background: #0f1419;
+      border: 1px solid #1f2937;
+      border-radius: 8px;
+      padding: 40px;
+      white-space: pre-wrap;
+      line-height: 1.8;
+      font-size: 15px;
+      color: #d1d5db;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 80px 20px;
+      color: #9ca3af;
+    }
+
+    .status-interrupted {
+      color: #ef4444;
+      font-weight: 600;
+    }
+
+    .language-selector {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .lang-btn {
+      padding: 8px 14px;
+      border: 1px solid #1f2937;
+      background: transparent;
+      color: #9ca3af;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .lang-btn:hover {
+      border-color: #667eea;
+      color: #667eea;
+    }
+
+    .lang-btn.active {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+
+    @media print {
+      .report-header,
+      .report-actions {
+        display: none;
+      }
+      
+      body {
+        background: white;
+        color: black;
+      }
+      
+      .report-content {
+        background: white;
+        color: black;
+        border: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <button class="back-button" onclick="window.close()">
+        <span>←</span>
+        <span data-i18n="backButton">返回</span>
+      </button>
+      <div class="language-selector">
+        <button class="lang-btn active" data-lang="zh">中文</button>
+        <button class="lang-btn" data-lang="en">EN</button>
+        <button class="lang-btn" data-lang="ja">日本語</button>
+      </div>
+      <h1 data-i18n="pageTitle">📄 分析报告</h1>
+    </div>
+
+    <div id="reportContent" class="report-content">
+      <!-- ...existing report content... -->
+    </div>
+  </div>
+
+  <script>
+    // 多语言翻译
+    const translations = {
+      zh: {
+        backButton: '返回',
+        pageTitle: '📄 分析报告',
+        loading: '加载中...',
+        reportNotFound: '报告未找到',
+        reportNotFoundDesc: '请从主页或历史记录访问报告',
+        errorLoading: '加载报告时出错',
+        visualizeBtn: '📊 可视化',
+        exportBtn: '💾 导出 Markdown',
+        exportSuccess: '报告已导出',
+      },
+      en: {
+        backButton: 'Back',
+        pageTitle: '📄 Analysis Report',
+        loading: 'Loading...',
+        reportNotFound: 'Report Not Found',
+        reportNotFoundDesc: 'Please access reports from the main page or history',
+        errorLoading: 'Error loading report',
+        visualizeBtn: '📊 Visualize',
+        exportBtn: '💾 Export Markdown',
+        exportSuccess: 'Report exported',
+      },
+      ja: {
+        backButton: '戻る',
+        pageTitle: '📄 分析レポート',
+        loading: '読み込み中...',
+        reportNotFound: 'レポートが見つかりません',
+        reportNotFoundDesc: 'メインページまたは履歴からレポートにアクセスしてください',
+        errorLoading: 'レポートの読み込みエラー',
+        visualizeBtn: '📊 視覚化',
+        exportBtn: '💾 Markdown エクスポート',
+        exportSuccess: 'レポートをエクスポートしました',
+      }
+    };
+
+    let currentLang = localStorage.getItem('preferredLanguage') || 'zh';
+
+    // 设置语言
+    function setLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem('preferredLanguage', lang);
+      
+      // 更新所有带 data-i18n 的元素
+      document.querySelectorAll('[data-i18n]').forEach(elem => {
+        const key = elem.getAttribute('data-i18n');
+        if (translations[lang][key]) {
+          elem.textContent = translations[lang][key];
+        }
+      });
+      
+      // 更新语言按钮状态
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+      });
+      
+      // 更新标题
+      document.title = translations[lang].pageTitle + ' - CompLens';
+    }
+
+    // 语言按钮点击事件
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          setLanguage(btn.getAttribute('data-lang'));
+        });
+      });
+      
+      // 初始化语言
+      setLanguage(currentLang);
+    });
+
+    let currentReport = null;
+    let reportId = null;
+    let fileUrl = null;
+
+    async function loadReport() {
+      // 从 URL 获取报告 ID
+      const urlParams = new URLSearchParams(window.location.search);
+      reportId = urlParams.get('id');
+
+      if (!reportId || reportId === 'null') {
+        document.body.innerHTML = `
+          <div style="text-align:center;padding:100px;color:#e5e7eb;background:#0a0e1a;min-height:100vh;">
+            <h1 style="font-size:24px;font-weight:300;margin-bottom:10px;" data-i18n="reportNotFound">❌ ${translations[currentLang].reportNotFound}</h1>
+            <p style="color:#9ca3af;" data-i18n="reportNotFoundDesc">${translations[currentLang].reportNotFoundDesc}</p>
+          </div>
+        `;
+        return;
+      }
+
+      // 显示加载状态
+      document.getElementById('reportContent').innerHTML = `
+        <div style="text-align:center;padding:80px;color:#9ca3af;">
+          <div class="spinner" style="margin:0 auto 20px;width:40px;height:40px;border:3px solid #1f2937;border-top-color:#667eea;border-radius:50%;animation:spin 1s linear infinite;"></div>
+          <p data-i18n="loading">${translations[currentLang].loading}</p>
+        </div>
+      `;
+
+      try {
+        const response = await fetch(`/api/reports/${reportId}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || '加载报告失败');
+        }
+
+        currentReport = data.report;
+        fileUrl = data.fileUrl || null;
+        renderReport(currentReport);
+      } catch (error) {
+        console.error('加载报告时出错:', error);
+        document.getElementById('reportContent').innerHTML = 
+          `<div class="loading">加载报告失败: ${error.message}</div>`;
+      }
+    }
+
+    function renderReport(report) {
+      // 设置标题
+      const titleText = report.fileName || report.idea.substring(0, 80) + '...';
+      document.getElementById('reportTitle').textContent = titleText;
+
+      // 设置元数据
+      const metaItems = [];
+      
+      // 添加文件信息和下载链接
+      if (report.fileName) {
+        const fileSize = report.fileSize ? ` (${(report.fileSize / 1024).toFixed(1)} KB)` : '';
+        const downloadLink = fileUrl 
+          ? `<a href="${fileUrl}" target="_blank" class="file-download-link">📎 ${report.fileName}${fileSize} - 点击下载</a>`
+          : `<span class="file-info">📎 ${report.fileName}${fileSize}</span>`;
+        metaItems.push(downloadLink);
+      }
+      
+      const badgeClass = report.mode === 'quick' ? 'badge-quick' : 'badge-deep';
+      metaItems.push(`<span class="report-badge ${badgeClass}">${report.mode.toUpperCase()}</span>`);
+      
+      // Add query type badge
+      if (report.queryType) {
+        const queryTypeBadge = report.queryType === 'followup' ? 'badge-followup' : 'badge-initial';
+        const queryTypeText = report.queryType === 'followup' ? 'FOLLOW-UP' : 'INITIAL';
+        metaItems.push(`<span class="report-badge ${queryTypeBadge}">${queryTypeText}</span>`);
+      }
+      
+      if (report.persona) {
+        metaItems.push(`<span class="persona-badge">${report.persona.toUpperCase()}</span>`);
+      }
+      
+      metaItems.push(`<span>${new Date(report.createdAt).toLocaleString('zh-CN')}</span>`);
+      
+      if (report.interrupted) {
+        metaItems.push(`<span class="status-interrupted">⚠️ 中断 (${report.progress || 0}%)</span>`);
+      }
+      
+      document.getElementById('reportMeta').innerHTML = metaItems.join('');
+
+      // 设置内容
+      const contentEl = document.getElementById('reportContent');
+      contentEl.className = 'report-content';
+      contentEl.textContent = report.fullReport;
+    }
+
+    function goBack() {
+      window.history.back();
+    }
+
+    function exportMarkdown() {
+      if (!currentReport) {
+        alert('未加载报告');
+        return;
+      }
+
+      const filename = `complens-report-${reportId}-${Date.now()}.md`;
+      const blob = new Blob([currentReport.fullReport], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      console.log(`✅ 已导出 Markdown: ${filename}`);
+    }
+
+    function exportPDF() {
+      if (!currentReport) {
+        alert('未加载报告');
+        return;
+      }
+
+      // 使用浏览器的打印功能
+      window.print();
+    }
+
+    async function reanalyze() {
+      if (!currentReport || !reportId) {
+        alert('未加载报告');
+        return;
+      }
+
+      const mode = prompt('选择模式 (quick/deep):', currentReport.mode);
+      if (!mode || (mode !== 'quick' && mode !== 'deep')) {
+        return;
+      }
+
+      const confirmMsg = `在 ${mode} 模式下重新分析此报告？这将创建一个新报告。`;
+      if (!confirm(confirmMsg)) {
+        return;
+      }
+
+      try {
+        document.getElementById('reportContent').innerHTML = 
+          '<div class="loading">正在重新分析... 这可能需要几分钟。</div>';
+
+        const response = await fetch(`/api/reports/${reportId}/reanalyze`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          alert('重新分析完成！正在跳转到新报告...');
+          window.location.href = `/report.html?id=${data.reportId}`;
+        } else {
+          throw new Error(data.error || '重新分析失败');
+        }
+      } catch (error) {
+        console.error('重新分析时出错:', error);
+        alert('重新分析失败: ' + error.message);
+        loadReport(); // 重新加载当前报告
+      }
+    }
+
+    // 页面加载时加载报告
+    loadReport();
+  </script>
+</body>
+</html>
